@@ -4,6 +4,7 @@ import * as React from "react"
 import { createPortal } from "react-dom"
 import { CONTENT_TYPE_CONFIG, type ContentType } from "@/lib/content-types"
 import type { TextBlock } from "@/components/tile-card"
+import { getRelatedIds } from "@/lib/utils"
 import { Link as LinkIcon, Pin, RefreshCw, Tag, X } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -154,12 +155,8 @@ export function GraphDetailPanel({
       : accent
   const headerColor = block.contentType === "thesis" ? "var(--thesis-foreground)" : "black"
 
-  const connectedBlocks = allBlocks.filter(
-    b => b.id !== block.id && (
-      block.influencedBy?.includes(b.id) ||
-      b.influencedBy?.includes(block.id)
-    )
-  )
+  const connectedIds = getRelatedIds(block.id, allBlocks)
+  const connectedBlocks = allBlocks.filter(b => b.id !== block.id && connectedIds.has(b.id))
 
   const date = new Date(block.timestamp).toLocaleDateString([], {
     month: "short", day: "numeric", year: "numeric",

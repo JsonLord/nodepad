@@ -19,22 +19,25 @@ import { generateGhostClient } from "@/lib/ai-ghost"
 import { exportToMarkdown, downloadMarkdown, copyToClipboard } from "@/lib/export"
 import { downloadNodepadFile, parseNodepadFile, NodepadParseError } from "@/lib/nodepad-format"
 import { detectContentType } from "@/lib/detect-content-type"
+import { createProjectStore } from "@/lib/storage"
+import { ApiStore, ApiStoreAuthenticationError } from "@/lib/storage/api-store"
+import { BrowserGraphStore } from "@/lib/storage/browser-graph-store"
+import type { HubConnectionStatus } from "@/lib/storage/hub-status"
+import { HubStatus } from "@/components/hub-status"
+import { ProjectsArea } from "@/components/projects-area"
+import { AgentsArea } from "@/components/agents-area"
+import { AgTxArea } from "@/components/agtx-area"
+import { getStorageMode } from "@/lib/storage"
+import { STORAGE_SCHEMA_VERSION } from "@/lib/storage/types"
+import type { ProjectStore } from "@/lib/storage/types"
+import type { Workspace } from "@/lib/domain/workspace"
+import { replaceAIInfluencedEdges, replaceWorkspaceBlocks, updateWorkspaceBlocks, workspaceBlocks } from "@/lib/domain/workspace-operations"
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10)
 }
 
-export interface Project {
-  id: string
-  name: string
-  blocks: TextBlock[]
-  collapsedIds: string[]
-  ghostNotes: GhostNote[]
-  lastGhostBlockCount?: number
-  lastGhostTimestamp?: number
-  /** Texts of recently generated ghost notes — passed back to the API to prevent near-duplicates */
-  lastGhostTexts?: string[]
-}
+export type Project = Workspace
 
 import { TileIndex } from "@/components/tile-index"
 
@@ -47,6 +50,7 @@ export default function Page() {
   const [isIndexOpen, setIsIndexOpen] = useState(false)
   const [isGhostPanelOpen, setIsGhostPanelOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"tiling" | "kanban" | "graph">("tiling")
+  const [appView, setAppView] = useState<"nodepad" | "projects" | "agents" | "agtx">("nodepad")
   const [isCommandKOpen, setIsCommandKOpen] = useState(false)
   const [jumpToSettings, setJumpToSettings] = useState(false)
   const [isIntroOpen, setIsIntroOpen] = useState(false)
@@ -54,16 +58,21 @@ export default function Page() {
   const helpTooltipTimer = useRef<NodeJS.Timeout | null>(null)
   const { settings, updateSettings, resolvedModelId, currentModel, isHydrated } = useAISettings()
   const debounceTimers = useRef<Record<string, Record<string, NodeJS.Timeout>>>({})
+  const projectStoreRef = useRef<ProjectStore & { loadOrMigrate?: () => Promise<import("@/lib/storage/types").CanonicalProjectState | null> } | null>(null)
+  const [hubStatus, setHubStatus] = useState<HubConnectionStatus>("browser")
+  const [authToken, setAuthToken] = useState("")
+  const [authError, setAuthError] = useState("")
+  const [pendingMigration, setPendingMigration] = useState<import("@/lib/storage/types").CanonicalProjectState | null>(null)
 
-  // ── Undo history ring (max 20 block snapshots per project) ───────────────
-  const blockHistoryRef = useRef<Record<string, TextBlock[][]>>({})
+  // ── Undo history ring (max 20 canonical snapshots per workspace) ────────
+  const blockHistoryRef = useRef<Record<string, Workspace[]>>({})
   const [undoToast, setUndoToast] = useState<string | null>(null)
   const undoToastTimer = useRef<NodeJS.Timeout | null>(null)
 
-  const pushHistory = useCallback((projectId: string, currentBlocks: TextBlock[]) => {
+  const pushHistory = useCallback((projectId: string, currentWorkspace: Workspace) => {
     if (!blockHistoryRef.current[projectId]) blockHistoryRef.current[projectId] = []
     const stack = blockHistoryRef.current[projectId]
-    stack.push(currentBlocks.map(b => ({ ...b })))
+    stack.push(currentWorkspace)
     if (stack.length > 20) stack.shift()
   }, [])
 
@@ -98,9 +107,9 @@ export default function Page() {
       showUndoToast("Nothing to undo")
       return
     }
-    const previousBlocks = stack.pop()!
+    const previousWorkspace = stack.pop()!
     setProjects(prev => prev.map(p => p.id === activeProjectId
-      ? { ...p, blocks: previousBlocks }
+      ? previousWorkspace
       : p
     ))
     showUndoToast("↩ Undone")
@@ -110,7 +119,7 @@ export default function Page() {
     projects.find(p => p.id === activeProjectId) || projects[0],
   [projects, activeProjectId])
 
-  const blocks = activeProject?.blocks || []
+  const blocks = useMemo(() => activeProject ? workspaceBlocks(activeProject) : [], [activeProject])
   const ghostNotes = activeProject?.ghostNotes || []
 
   const updateActiveProject = useCallback((updater: (p: Project) => Project) => {
@@ -130,87 +139,99 @@ export default function Page() {
 
   // 1. Persistence: Initial Load & Migration
   useEffect(() => {
-    const savedProjects = localStorage.getItem("nodepad-projects")
-    const savedActiveId = localStorage.getItem("nodepad-active-project")
-    
-    const oldBlocks = localStorage.getItem("nodepad-blocks")
-    const oldCollapsed = localStorage.getItem("nodepad-collapsed")
-
-    let initialProjects: Project[] = []
-    let initialActiveId = ""
-
-    const backupProjects = localStorage.getItem("nodepad-backup")
-
-    if (savedProjects) {
+    let cancelled = false
+    async function loadProjects() {
       try {
-        initialProjects = JSON.parse(savedProjects)
-        initialActiveId = savedActiveId || initialProjects[0]?.id || ""
-      } catch (e) {
-        console.error("Failed to parse saved projects — trying backup", e)
-        // Fall through to backup attempt below
-      }
-    }
-
-    // Fallback: restore from silent backup if primary key was absent or corrupt
-    if (initialProjects.length === 0 && backupProjects) {
-      try {
-        initialProjects = JSON.parse(backupProjects)
-        initialActiveId = initialProjects[0]?.id || ""
-        console.info("Restored from nodepad-backup")
-      } catch (e) {
-        console.error("Backup restore also failed", e)
-      }
-    }
-
-    if (initialProjects.length === 0 && oldBlocks) {
-      try {
-        const blks = JSON.parse(oldBlocks)
-        const collapsed = oldCollapsed ? JSON.parse(oldCollapsed) : []
-        const defaultProject: Project = {
-          id: "default",
-          name: "Default Space",
-          blocks: blks,
-          collapsedIds: collapsed,
-          ghostNotes: [],
+        const store = createProjectStore(setHubStatus)
+        projectStoreRef.current = store
+        let state
+        try {
+          state = store.loadOrMigrate ? await store.loadOrMigrate() : await store.load()
+        } catch (error) {
+          if (!(store instanceof ApiStore) || !(error instanceof ApiStoreAuthenticationError)) throw error
+          return
         }
-        initialProjects = [defaultProject]
-        initialActiveId = "default"
+        if (!state && store instanceof ApiStore) {
+          const browserState = await new BrowserGraphStore(window.localStorage).load()
+          if (browserState) { setPendingMigration(browserState); return }
+        }
+        if (cancelled) return
+        if (state) {
+          setProjects(state.workspaces)
+          setActiveProjectId(state.activeWorkspaceId)
+        } else {
+          setProjects(INITIAL_PROJECTS)
+          setActiveProjectId(INITIAL_PROJECTS[0].id)
+        }
+        setIsLoaded(true)
       } catch (e) {
-        console.error("Migration failed", e)
+        console.error("Canonical project loading failed", e)
+        if (!cancelled) alert(e instanceof Error ? e.message : "Nodepad storage failed")
       }
     }
-
-    if (initialProjects.length === 0) {
-      initialProjects = INITIAL_PROJECTS
-      initialActiveId = INITIAL_PROJECTS[0].id
-    }
-
-    setProjects(initialProjects)
-    setActiveProjectId(initialActiveId)
-    setIsLoaded(true)
+    void loadProjects()
 
     // Show intro modal on first visit
     if (!localStorage.getItem("nodepad-intro-seen")) {
       setIsIntroOpen(true)
     }
 
+    return () => { cancelled = true }
   }, [])
+
+  const authenticateHub = useCallback(async () => {
+    const store = projectStoreRef.current
+    if (!(store instanceof ApiStore) || !authToken) return
+    setAuthError("")
+    try {
+      await store.authenticate(authToken)
+      setAuthToken("")
+      const state = await store.load()
+      if (state) { setProjects(state.workspaces); setActiveProjectId(state.activeWorkspaceId); setIsLoaded(true); return }
+      const browserState = await new BrowserGraphStore(window.localStorage).load()
+      if (browserState) setPendingMigration(browserState)
+      else { setProjects(INITIAL_PROJECTS); setActiveProjectId(INITIAL_PROJECTS[0].id); setIsLoaded(true) }
+    } catch (error) { setAuthToken(""); setAuthError(error instanceof Error ? error.message : "Authentication failed") }
+  }, [authToken])
+
+  const reconnectHub = useCallback(async () => {
+    const store = projectStoreRef.current
+    if (!(store instanceof ApiStore)) return
+    setHubStatus("connecting")
+    try {
+      const state = await store.load()
+      if (state) { setProjects(state.workspaces); setActiveProjectId(state.activeWorkspaceId); setIsLoaded(true) }
+    } catch (error) { console.error("Hub reconnect failed", error) }
+  }, [])
+
+  const finishMigration = useCallback(async (upload: boolean) => {
+    const store = projectStoreRef.current
+    if (!(store instanceof ApiStore) || !pendingMigration) return
+    if (upload) await store.save(pendingMigration)
+    const state = upload ? await store.load() : null
+    setPendingMigration(null)
+    setProjects(state?.workspaces ?? INITIAL_PROJECTS)
+    setActiveProjectId(state?.activeWorkspaceId ?? INITIAL_PROJECTS[0].id)
+    setIsLoaded(true)
+  }, [pendingMigration])
 
   // 2. Persistence: Save on Change
   useEffect(() => {
-    if (!isLoaded) return
-    localStorage.setItem("nodepad-projects", JSON.stringify(projects))
-    localStorage.setItem("nodepad-active-project", activeProjectId)
-  }, [projects, activeProjectId, isLoaded])
-
-  // 3. Silent rolling backup — written on every change, separate key.
-  //    If nodepad-projects is ever wiped, the load effect can fall back to this.
-  useEffect(() => {
     if (!isLoaded || projects.length === 0) return
     try {
-      localStorage.setItem("nodepad-backup", JSON.stringify(projects))
+      const store = projectStoreRef.current
+      if (!store) return
+      void store.save({
+        version: STORAGE_SCHEMA_VERSION,
+        activeWorkspaceId: activeProjectId,
+        workspaces: projects,
+        savedAt: Date.now(),
+      }).catch(error => {
+        console.error("Nodepad persistence failed", error)
+        alert(error instanceof Error ? error.message : "Nodepad persistence failed")
+      })
     } catch { /* quota exceeded — skip silently */ }
-  }, [projects, isLoaded])
+  }, [projects, activeProjectId, isLoaded])
 
   // Hidden file input for .nodepad import — triggered from sidebar or ⌘K
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -302,7 +323,7 @@ export default function Page() {
     if (!targetProject) return
 
     // Require at least 5 enriched blocks
-    const enrichedBlocks = targetProject.blocks.filter(b => !b.isEnriching && b.category)
+    const enrichedBlocks = workspaceBlocks(targetProject).filter(b => !b.isEnriching && b.category)
     if (enrichedBlocks.length < 5) return
 
     // Cap panel at 5 ghost notes
@@ -375,7 +396,7 @@ export default function Page() {
     const targetProject = projectsRef.current.find(p => p.id === projectId)
     if (!targetProject) return
 
-    const context = targetProject.blocks
+    const context = workspaceBlocks(targetProject)
       .filter((b) => b.id !== id && !b.isEnriching)
       .map((b) => ({
         id: b.id,
@@ -409,9 +430,7 @@ export default function Page() {
           if (proj.id !== projectId) return proj
 
           if (mergeTargetId) {
-            return {
-              ...proj,
-              blocks: proj.blocks
+            const updated = updateWorkspaceBlocks(proj, blocks => blocks
                 .filter(b => b.id !== id)
                 .map(b => b.id === mergeTargetId ? {
                   ...b,
@@ -420,73 +439,27 @@ export default function Page() {
                   category: data.category,
                   annotation: data.annotation,
                   confidence: data.confidence,
-                  influencedBy,
                   isUnrelated: data.isUnrelated,
                   sources: data.sources ?? undefined,
                   isEnriching: false,
                   statusText: undefined,
                   isError: false,
-                } : b)
-            }
+                } : b))
+            return replaceAIInfluencedEdges(updated, mergeTargetId, influencedBy, data.confidence ?? undefined)
           }
-          if (data.contentType === "task") {
-            const existingTaskIndex = proj.blocks.findIndex(b => b.contentType === "task" && b.id !== id)
-            if (existingTaskIndex !== -1) {
-              const existingTask = proj.blocks[existingTaskIndex]
-              const newSubTask = {
-                id: Math.random().toString(36).substring(2, 9),
-                text: text,
-                isDone: false,
-                timestamp: Date.now()
-              }
-              return {
-                ...proj,
-                blocks: proj.blocks
-                  .filter(b => b.id !== id)
-                  .map(b => b.id === existingTask.id ? {
-                    ...b,
-                    subTasks: [...(b.subTasks || []), newSubTask],
-                    isEnriching: false,
-                    statusText: undefined
-                  } : b)
-              }
-            } else {
-              return {
-                ...proj,
-                blocks: proj.blocks.map(b => b.id === id ? {
-                  ...b,
-                  contentType: "task",
-                  category: "Tasks",
-                  subTasks: [{
-                    id: Math.random().toString(36).substring(2, 9),
-                    text: text,
-                    isDone: false,
-                    timestamp: Date.now()
-                  }],
-                  isEnriching: false,
-                  statusText: undefined,
-                  isError: false
-                } : b)
-              }
-            }
-          }
-
-          return {
-            ...proj,
-            blocks: proj.blocks.map(b => b.id === id ? {
+          const updated = updateWorkspaceBlocks(proj, blocks => blocks.map(b => b.id === id ? {
               ...b,
               contentType: data.contentType,
               category: data.category,
               annotation: data.annotation,
               confidence: data.confidence,
-              influencedBy,
               isUnrelated: data.isUnrelated,
               sources: data.sources ?? undefined,
               isEnriching: false,
               statusText: undefined,
               isError: false,
-            } : b)
-          }
+            } : b))
+          return replaceAIInfluencedEdges(updated, id, influencedBy, data.confidence ?? undefined)
         })
       })
 
@@ -495,10 +468,9 @@ export default function Page() {
       console.warn(e)
       const isNoKey = e?.message?.includes("No API key") || e?.message?.includes("Invalid or missing API key") || false
       const errorStatus = isNoKey ? "no-api-key" : (e instanceof Error ? e.message : undefined)
-      setProjects((current: Project[]) => current.map(proj => proj.id === projectId ? {
-        ...proj,
-        blocks: proj.blocks.map(b => b.id === id ? { ...b, isEnriching: false, isError: true, statusText: errorStatus } : b)
-      } : proj))
+      setProjects((current: Project[]) => current.map(proj => proj.id === projectId
+        ? updateWorkspaceBlocks(proj, blocks => blocks.map(b => b.id === id ? { ...b, isEnriching: false, isError: true, statusText: errorStatus } : b))
+        : proj))
     }
   }, [generateGhostNote])
 
@@ -509,20 +481,20 @@ export default function Page() {
     const { text, category } = note
 
     updateActiveProject(p => {
-      const updatedProject = {
-        ...p,
-        blocks: [...p.blocks, {
+      const updatedProject = replaceWorkspaceBlocks(p, [...workspaceBlocks(p), {
           id: newId,
           text,
           timestamp: Date.now(),
           contentType: "thesis" as ContentType,
           category,
           isEnriching: true
-        }],
+        }])
+      const withGhostRemoved = {
+        ...updatedProject,
         ghostNotes: (p.ghostNotes || []).filter(n => n.id !== id),
       }
       enrichBlock(p.id, newId, text, category, "thesis")
-      return updatedProject
+      return withGhostRemoved
     })
   }, [activeProject, updateActiveProject, enrichBlock])
 
@@ -597,17 +569,15 @@ export default function Page() {
       const initialDisplayType: ContentType = resolvedType
         ?? (HIGH_CONFIDENCE_TYPES.has(heuristicType) ? heuristicType : "general")
 
-      pushHistory(activeProjectId, blocksRef.current)
-      updateActiveProject(p => ({
-        ...p,
-        blocks: [...p.blocks, {
+      const currentWorkspace = projectsRef.current.find(p => p.id === activeProjectId)
+      if (currentWorkspace) pushHistory(activeProjectId, currentWorkspace)
+      updateActiveProject(p => replaceWorkspaceBlocks(p, [...workspaceBlocks(p), {
           id: newId,
           text: resolvedText,
           timestamp: Date.now(),
           contentType: initialDisplayType,
           isEnriching: true,
-        }]
-      }))
+        }]))
 
       setIsCommandKOpen(false)
       enrichBlock(activeProjectId, newId, resolvedText, undefined, enrichForcedType).catch(console.error)
@@ -616,27 +586,25 @@ export default function Page() {
   )
 
   const deleteBlock = useCallback((id: string) => {
-    pushHistory(activeProjectId, blocksRef.current)
-    updateActiveProject(p => ({
-      ...p,
-      blocks: p.blocks.filter(b => b.id !== id)
-    }))
+    const currentWorkspace = projectsRef.current.find(p => p.id === activeProjectId)
+    if (currentWorkspace) pushHistory(activeProjectId, currentWorkspace)
+    updateActiveProject(p => updateWorkspaceBlocks(p, blocks => blocks.filter(b => b.id !== id)))
   }, [activeProjectId, pushHistory, updateActiveProject])
 
   const editBlock = useCallback((id: string, newText: string) => {
     // Snapshot before the edit so Cmd+Z restores the original text
     const currentProj = projectsRef.current.find(p => p.id === activeProjectId)
     if (currentProj) {
-      const currentBlock = currentProj.blocks.find(b => b.id === id)
+      const currentBlock = workspaceBlocks(currentProj).find(b => b.id === id)
       if (currentBlock && currentBlock.text !== newText) {
-        pushHistory(activeProjectId, currentProj.blocks)
+        pushHistory(activeProjectId, currentProj)
       }
     }
 
     setProjects(prev => {
       const proj = prev.find(p => p.id === activeProjectId)
       if (!proj) return prev
-      const block = proj.blocks.find(b => b.id === id)
+      const block = workspaceBlocks(proj).find(b => b.id === id)
       if (!block || block.text === newText) return prev
 
       if (!debounceTimers.current[activeProjectId]) {
@@ -652,10 +620,9 @@ export default function Page() {
         delete debounceTimers.current[activeProjectId][id]
       }, 800)
 
-      return prev.map(p => p.id === activeProjectId ? {
-        ...p,
-        blocks: p.blocks.map(b => b.id === id ? { ...b, text: newText, isEnriching: true, isError: false } : b)
-      } : p)
+      return prev.map(p => p.id === activeProjectId
+        ? updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === id ? { ...b, text: newText, isEnriching: true, isError: false } : b))
+        : p)
     })
   }, [activeProjectId, enrichBlock, pushHistory])
 
@@ -663,19 +630,13 @@ export default function Page() {
     const block = blocksRef.current.find(b => b.id === id)
     if (!block) return
 
-    updateActiveProject(p => ({
-      ...p,
-      blocks: p.blocks.map(b => b.id === id ? { ...b, category: newCategory, isEnriching: true } : b)
-    }))
+    updateActiveProject(p => updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === id ? { ...b, category: newCategory, isEnriching: true } : b)))
 
     enrichBlock(activeProjectId, id, block.text, newCategory || block.category, block.contentType).catch(console.error)
   }, [activeProjectId, updateActiveProject, enrichBlock])
 
   const editAnnotation = useCallback((id: string, newAnnotation: string) => {
-    updateActiveProject(p => ({
-      ...p,
-      blocks: p.blocks.map(b => b.id === id ? { ...b, annotation: newAnnotation } : b)
-    }))
+    updateActiveProject(p => updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === id ? { ...b, annotation: newAnnotation } : b)))
   }, [updateActiveProject])
 
   const toggleCollapse = useCallback((id: string) => {
@@ -688,53 +649,48 @@ export default function Page() {
   }, [updateActiveProject])
 
   const handleTogglePin = useCallback((id: string) => {
-    setProjects((current) => current.map(p => p.id === activeProjectId ? {
-      ...p,
-      blocks: p.blocks.map(b => b.id === id ? { ...b, isPinned: !b.isPinned } : b)
-    } : p))
+    setProjects((current) => current.map(p => p.id === activeProjectId
+      ? updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === id ? { ...b, isPinned: !b.isPinned } : b))
+      : p))
   }, [activeProjectId])
 
   const handleToggleSubTask = useCallback((blockId: string, subTaskId: string) => {
-    setProjects((current) => current.map(p => p.id === activeProjectId ? {
-      ...p,
-      blocks: p.blocks.map(b => b.id === blockId ? {
+    setProjects((current) => current.map(p => p.id === activeProjectId
+      ? updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === blockId ? {
         ...b,
         subTasks: b.subTasks?.map(st => st.id === subTaskId ? { ...st, isDone: !st.isDone } : st)
-      } : b)
-    } : p))
+      } : b)) : p))
   }, [activeProjectId])
 
   const handleDeleteSubTask = useCallback((blockId: string, subTaskId: string) => {
-    setProjects((current) => current.map(p => p.id === activeProjectId ? {
-      ...p,
-      blocks: p.blocks.map(b => b.id === blockId ? {
+    setProjects((current) => current.map(p => p.id === activeProjectId
+      ? updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === blockId ? {
         ...b,
         subTasks: b.subTasks?.filter(st => st.id !== subTaskId)
-      } : b)
-    } : p))
+      } : b)) : p))
   }, [activeProjectId])
 
   const handleChangeType = useCallback((id: string, newType: ContentType) => {
     const block = blocksRef.current.find(b => b.id === id)
     if (!block) return
-    pushHistory(activeProjectId, blocksRef.current)
-    updateActiveProject(p => ({
-      ...p,
-      blocks: p.blocks.map(b => b.id === id ? { ...b, contentType: newType, isEnriching: true } : b)
-    }))
+    const currentWorkspace = projectsRef.current.find(p => p.id === activeProjectId)
+    if (currentWorkspace) pushHistory(activeProjectId, currentWorkspace)
+    updateActiveProject(p => updateWorkspaceBlocks(p, blocks => blocks.map(b => b.id === id ? { ...b, contentType: newType, isEnriching: true } : b)))
     enrichBlock(activeProjectId, id, block.text, block.category, newType).catch(console.error)
   }, [activeProjectId, pushHistory, updateActiveProject, enrichBlock])
 
   const clearBlocks = useCallback(() => {
-    pushHistory(activeProjectId, blocksRef.current)
-    updateActiveProject(p => ({ ...p, blocks: [], collapsedIds: [] }))
+    const currentWorkspace = projectsRef.current.find(p => p.id === activeProjectId)
+    if (currentWorkspace) pushHistory(activeProjectId, currentWorkspace)
+    updateActiveProject(p => ({ ...replaceWorkspaceBlocks(p, []), collapsedIds: [] }))
   }, [activeProjectId, pushHistory, updateActiveProject])
 
   const createProject = useCallback(() => {
     const newProject: Project = {
       id: generateId(),
       name: "New Space",
-      blocks: [],
+      entities: [],
+      edges: [],
       collapsedIds: [],
       ghostNotes: [],
     }
@@ -762,27 +718,27 @@ export default function Page() {
   // in the target, so we drop them — the block can be re-enriched in context.
   const moveBlockToWorkspace = useCallback((blockId: string, targetWorkspaceId: string) => {
     if (targetWorkspaceId === activeProjectId) return
-    pushHistory(activeProjectId, blocksRef.current)
+    const currentWorkspace = projectsRef.current.find(p => p.id === activeProjectId)
+    if (currentWorkspace) pushHistory(activeProjectId, currentWorkspace)
     setProjects(prev => {
       const source = prev.find(p => p.id === activeProjectId)
-      const block = source?.blocks.find(b => b.id === blockId)
+      const block = source ? workspaceBlocks(source).find(b => b.id === blockId) : undefined
       if (!block) return prev
       return prev.map(p => {
         if (p.id === activeProjectId) {
           return {
-            ...p,
-            blocks: p.blocks.filter(b => b.id !== blockId),
+            ...updateWorkspaceBlocks(p, blocks => blocks.filter(b => b.id !== blockId)),
             collapsedIds: p.collapsedIds.filter(id => id !== blockId),
           }
         }
         if (p.id === targetWorkspaceId) {
-          const idCollision = p.blocks.some(b => b.id === blockId)
+          const idCollision = workspaceBlocks(p).some(b => b.id === blockId)
           const moved: TextBlock = {
             ...block,
             id: idCollision ? generateId() : block.id,
             influencedBy: undefined,
           }
-          return { ...p, blocks: [...p.blocks, moved] }
+          return replaceWorkspaceBlocks(p, [...workspaceBlocks(p), moved])
         }
         return p
       })
@@ -796,7 +752,7 @@ export default function Page() {
     if (targetWorkspaceId === activeProjectId) return
     setProjects(prev => {
       const source = prev.find(p => p.id === activeProjectId)
-      const block = source?.blocks.find(b => b.id === blockId)
+      const block = source ? workspaceBlocks(source).find(b => b.id === blockId) : undefined
       if (!block) return prev
       return prev.map(p => {
         if (p.id !== targetWorkspaceId) return p
@@ -806,7 +762,7 @@ export default function Page() {
           timestamp: Date.now(),
           influencedBy: undefined,
         }
-        return { ...p, blocks: [...p.blocks, copy] }
+        return replaceWorkspaceBlocks(p, [...workspaceBlocks(p), copy])
       })
     })
     showUndoToast(`⎘ Copied to ${projectsRef.current.find(p => p.id === targetWorkspaceId)?.name ?? "space"}`)
@@ -863,7 +819,7 @@ export default function Page() {
       setProjects(prev => {
         const proj = prev.find(p => p.id === activeProjectId)
         if (proj) {
-          const md = exportToMarkdown(proj.name, proj.blocks)
+          const md = exportToMarkdown(proj.name, workspaceBlocks(proj))
           const slug = proj.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
           downloadMarkdown(`${slug}.md`, md)
         }
@@ -873,7 +829,7 @@ export default function Page() {
       setProjects(prev => {
         const proj = prev.find(p => p.id === activeProjectId)
         if (proj) {
-          const md = exportToMarkdown(proj.name, proj.blocks)
+          const md = exportToMarkdown(proj.name, workspaceBlocks(proj))
           copyToClipboard(md)
         }
         return prev
@@ -889,6 +845,8 @@ export default function Page() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
+      {hubStatus === "authentication-required" && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm"><form onSubmit={e => { e.preventDefault(); void authenticateHub() }} className="w-96 rounded border border-border bg-card p-6 shadow-2xl"><h2 className="mb-2 font-mono text-sm font-bold">Connect to Nodepad Hub</h2><p className="mb-4 text-xs text-muted-foreground">Enter the single-user Hub token. It is exchanged for an HttpOnly session and is not stored.</p><input autoFocus type="password" value={authToken} onChange={e => setAuthToken(e.target.value)} className="w-full rounded border border-border bg-background p-2 text-sm" autoComplete="current-password" />{authError && <p className="mt-2 text-xs text-red-400">{authError}</p>}<button type="submit" className="mt-4 rounded bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Authenticate</button></form></div>}
+      {pendingMigration && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm"><div className="w-[430px] rounded border border-border bg-card p-6"><h2 className="font-mono text-sm font-bold">Browser data found</h2><p className="mt-2 text-xs text-muted-foreground">The Hub is empty. Upload {pendingMigration.workspaces.length} workspaces, {pendingMigration.workspaces.reduce((n,w)=>n+w.entities.length,0)} entities, and {pendingMigration.workspaces.reduce((n,w)=>n+w.edges.length,0)} edges?</p><div className="mt-4 flex gap-2"><button onClick={() => void finishMigration(true)} className="rounded bg-primary px-3 py-2 text-xs text-primary-foreground">Upload to Hub</button><button onClick={() => void finishMigration(false)} className="rounded border border-border px-3 py-2 text-xs">Start empty Hub</button></div></div></div>}
       {/* Hidden file input for .nodepad import */}
       <input
         ref={importInputRef}
@@ -933,6 +891,13 @@ export default function Page() {
             if (helpTooltipTimer.current) clearTimeout(helpTooltipTimer.current)
           }}
         />
+        <HubStatus status={hubStatus} onReconnect={reconnectHub} />
+        <nav className="flex h-8 shrink-0 items-center gap-1 border-b border-border bg-card/40 px-3 font-mono text-[9px] font-bold uppercase tracking-wider">
+          <button onClick={()=>setAppView("nodepad")} className={`rounded px-3 py-1 ${appView==="nodepad"?"bg-primary/15 text-primary":"text-muted-foreground hover:bg-secondary"}`}>Nodepad</button>
+          <button onClick={()=>setAppView("projects")} className={`rounded px-3 py-1 ${appView==="projects"?"bg-primary/15 text-primary":"text-muted-foreground hover:bg-secondary"}`}>Projects</button>
+          <button onClick={()=>setAppView("agents")} className={`rounded px-3 py-1 ${appView==="agents"?"bg-primary/15 text-primary":"text-muted-foreground hover:bg-secondary"}`}>Agents</button>
+          <button onClick={()=>setAppView("agtx")} className={`rounded px-3 py-1 ${appView==="agtx"?"bg-primary/15 text-primary":"text-muted-foreground hover:bg-secondary"}`}>AGTX</button>
+        </nav>
 
         {isHydrated && !settings.apiKey && (
           <div className="flex items-center justify-center gap-3 px-4 py-2 bg-amber-950/80 border-b border-amber-800/60 text-amber-200 text-xs shrink-0">
@@ -956,13 +921,13 @@ export default function Page() {
           </div>
         )}
 
-        <div className="flex flex-1 overflow-hidden relative">
+        {appView === "projects" && activeProject ? <div className="flex-1 overflow-hidden"><ProjectsArea workspace={activeProject} onChange={next=>setProjects(prev=>prev.map(p=>p.id===next.id?next:p))} readOnly={hubStatus==="offline-cache"||hubStatus==="conflict"||hubStatus==="error"||hubStatus==="connecting"} onOpenInNodepad={id=>{setHighlightedBlockId(id);setViewMode("graph");setAppView("nodepad")}}/></div> : appView === "agents" && activeProject ? <div className="flex-1 overflow-hidden"><AgentsArea workspace={activeProject} available={getStorageMode()==="server"&&hubStatus==="online"}/></div> : appView === "agtx" && activeProject ? <div className="flex-1 overflow-hidden"><AgTxArea workspace={activeProject} available={getStorageMode()==="server"&&hubStatus==="online"}/></div> : <div className="flex flex-1 overflow-hidden relative" onClickCapture={e=>{if(hubStatus==="offline-cache"||hubStatus==="conflict"||hubStatus==="error"||hubStatus==="connecting"){e.preventDefault();e.stopPropagation()}}} onKeyDownCapture={e=>{if(hubStatus==="offline-cache"||hubStatus==="conflict"||hubStatus==="error"||hubStatus==="connecting"){e.preventDefault();e.stopPropagation()}}}>
           <main className="relative flex-1 overflow-hidden">
             {isLoaded ? (
               viewMode === "tiling" ? (
                 <TilingArea
                   key={`tiling-${activeProjectId}`}
-                  blocks={activeProject.blocks}
+                  blocks={blocks}
                   collapsedIds={new Set(activeProject.collapsedIds)}
                   onDelete={deleteBlock}
                   onEdit={editBlock}
@@ -983,7 +948,7 @@ export default function Page() {
               ) : viewMode === "kanban" ? (
                 <KanbanArea
                   key={`kanban-${activeProjectId}`}
-                  blocks={activeProject.blocks}
+                  blocks={blocks}
                   onDelete={deleteBlock}
                   onEdit={editBlock}
                   onEditAnnotation={editAnnotation}
@@ -998,7 +963,7 @@ export default function Page() {
               ) : (
                 <GraphArea
                   key={`graph-${activeProjectId}`}
-                  blocks={activeProject.blocks}
+                  blocks={blocks}
                   ghostNote={ghostNotes[ghostNotes.length - 1]}
                   projectName={activeProject.name}
                   onReEnrich={reEnrichBlock}
@@ -1008,10 +973,6 @@ export default function Page() {
                   onEditAnnotation={editAnnotation}
                   highlightedBlockId={highlightedBlockId}
                   onHighlight={setHighlightedBlockId}
-                  workspaces={workspaceOptions}
-                  activeWorkspaceId={activeProjectId}
-                  onMoveToWorkspace={moveBlockToWorkspace}
-                  onCopyToWorkspace={copyBlockToWorkspace}
                 />
               )
             ) : (
@@ -1026,7 +987,7 @@ export default function Page() {
             onClaim={claimGhostNote}
             onDismiss={dismissGhostNote}
           />
-        </div>
+        </div>}
 
         {/* Undo toast */}
         <AnimatePresence>

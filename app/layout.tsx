@@ -1,17 +1,8 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Vazirmatn } from 'next/font/google'
 import Script from 'next/script'
 import { ThemeProvider } from 'next-themes'
 import { MobileWall } from '@/components/mobile-wall'
 import './globals.css'
-
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic"],
-  variable: "--font-vazirmatn",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: 'nodepad',
@@ -42,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans antialiased ${vazirmatn.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <MobileWall />
           {children}

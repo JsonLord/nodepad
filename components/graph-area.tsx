@@ -6,6 +6,8 @@ import { CONTENT_TYPE_CONFIG } from "@/lib/content-types"
 import type { TextBlock } from "@/components/tile-card"
 import { GraphDetailPanel } from "./graph-detail-panel"
 import { useModKey } from "@/lib/utils"
+import { legacyInfluencedByToEdges } from "@/lib/nodepad/legacy-adapter"
+import { getConnectedEntityIds } from "@/lib/graph/relationships"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,14 +53,11 @@ function calcDegrees(
   const deg = new Map<string, number>()
   const ensure = (id: string) => { if (!deg.has(id)) deg.set(id, 0) }
 
-  for (const b of blocks) {
-    ensure(b.id)
-    if (!b.influencedBy?.length) continue
-    for (const tid of b.influencedBy) {
-      ensure(tid)
-      deg.set(b.id, (deg.get(b.id) ?? 0) + 1)
-      deg.set(tid,  (deg.get(tid)  ?? 0) + 1)
-    }
+  for (const b of blocks) ensure(b.id)
+  for (const edge of legacyInfluencedByToEdges(blocks)) {
+    ensure(edge.targetId)
+    deg.set(edge.sourceId, (deg.get(edge.sourceId) ?? 0) + 1)
+    deg.set(edge.targetId, (deg.get(edge.targetId) ?? 0) + 1)
   }
 
   if (ghostNote) {
@@ -138,15 +137,12 @@ function buildGraph(
   }
 
   // ── Links ────────────────────────────────────────────────────────────────
-  for (const b of blocks) {
-    if (!b.influencedBy?.length) continue
-    for (const tid of b.influencedBy) {
-      if (!blockSet.has(tid)) continue
-      const key = [b.id, tid].sort().join("§")
-      if (edgeSet.has(key)) continue
-      edgeSet.add(key)
-      links.push({ source: b.id, target: tid })
-    }
+  for (const edge of legacyInfluencedByToEdges(blocks)) {
+    if (!blockSet.has(edge.targetId)) continue
+    const key = [edge.sourceId, edge.targetId].sort().join("§")
+    if (edgeSet.has(key)) continue
+    edgeSet.add(key)
+    links.push({ source: edge.sourceId, target: edge.targetId })
   }
 
   if (ghostNote) {
@@ -365,9 +361,7 @@ export function GraphArea({
     if (nodesRef.current.find(n => n.id === focalId)?.isSynthesis) {
       for (const n of nodesRef.current) ids.add(n.id)
     } else {
-      const b = blocks.find(x => x.id === focalId)
-      if (b?.influencedBy) for (const id of b.influencedBy) ids.add(id)
-      for (const x of blocks) if (x.influencedBy?.includes(focalId)) ids.add(x.id)
+      for (const id of getConnectedEntityIds(focalId, legacyInfluencedByToEdges(blocks))) ids.add(id)
     }
     return ids
   }, [focalId, blocks])

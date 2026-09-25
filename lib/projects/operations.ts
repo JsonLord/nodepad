@@ -1,0 +1,28 @@
+import type { Edge, EdgeOrigin } from "../domain/edge"
+import type { Entity } from "../domain/entity"
+import type { Workspace } from "../domain/workspace"
+import { PROJECT_STATUSES, TASK_STATUSES, WORK_PRIORITIES, type ProjectStatus, type TaskStatus, type WorkPriority } from "./constants"
+import { getTaskProjectId } from "./queries"
+
+const id=()=>globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
+const edge=(sourceId:string,targetId:string,type:string,origin:EdgeOrigin="user"):Edge=>{const now=Date.now();return{id:`edge:${id()}`,sourceId,targetId,type,origin,createdAt:now,updatedAt:now}}
+const touch=(w:Workspace):Workspace=>({...w,updatedAt:Date.now()})
+const assertEntity=(w:Workspace,id:string,type?:Entity["type"])=>{const e=w.entities.find(x=>x.id===id);if(!e||type&&e.type!==type)throw new Error(`${type??"Entity"} ${id} not found`);return e}
+export interface WorkEntityInput { title:string; body?:string; status?:string; priority?:WorkPriority; dueAt?:number }
+export function createProject(w:Workspace,input:WorkEntityInput):Workspace { const now=Date.now();const e:Entity={id:id(),type:"project",title:input.title.trim()||"Untitled Project",body:input.body,status:input.status??"active",priority:input.priority??"none",dueAt:input.dueAt,workspaceId:w.id,createdAt:now,updatedAt:now};return touch({...w,entities:[...w.entities,e]}) }
+export function updateProject(w:Workspace,projectId:string,patch:Partial<Pick<Entity,"title"|"body"|"dueAt">>&{status?:ProjectStatus;priority?:WorkPriority}):Workspace { assertEntity(w,projectId,"project");if(patch.status&&!PROJECT_STATUSES.includes(patch.status))throw new Error("Invalid project status");return updateEntity(w,projectId,patch) }
+export const archiveProject=(w:Workspace,id:string)=>updateProject(w,id,{status:"archived"})
+export function createTask(w:Workspace,input:WorkEntityInput,projectId?:string):Workspace { if(projectId)assertEntity(w,projectId,"project");const now=Date.now();const task:Entity={id:id(),type:"task",title:input.title.trim()||"Untitled Task",body:input.body,status:input.status??"inbox",priority:input.priority??"none",dueAt:input.dueAt,workspaceId:w.id,createdAt:now,updatedAt:now};return touch({...w,entities:[...w.entities,task],edges:projectId?[...w.edges,edge(task.id,projectId,"belongs_to")]:w.edges}) }
+export function updateTask(w:Workspace,taskId:string,patch:Partial<Pick<Entity,"title"|"body"|"dueAt">>&{status?:TaskStatus;priority?:WorkPriority}):Workspace { assertEntity(w,taskId,"task");if(patch.status&&!TASK_STATUSES.includes(patch.status))throw new Error("Invalid task status");if(patch.priority&&!WORK_PRIORITIES.includes(patch.priority))throw new Error("Invalid priority");return updateEntity(w,taskId,patch) }
+const updateEntity=(w:Workspace,entityId:string,patch:Partial<Entity>):Workspace=>touch({...w,entities:w.entities.map(e=>e.id===entityId?{...e,...patch,id:e.id,type:e.type,updatedAt:Date.now()}:e)})
+export const setTaskStatus=(w:Workspace,id:string,status:TaskStatus)=>updateTask(w,id,{status})
+export const setTaskPriority=(w:Workspace,id:string,priority:WorkPriority)=>updateTask(w,id,{priority})
+export const setTaskDueDate=(w:Workspace,id:string,dueAt?:number)=>updateTask(w,id,{dueAt})
+export function assignTaskToProject(w:Workspace,taskId:string,projectId?:string):Workspace { assertEntity(w,taskId,"task");if(projectId)assertEntity(w,projectId,"project");const edges=w.edges.filter(e=>!(e.sourceId===taskId&&e.type==="belongs_to"));return touch({...w,edges:projectId?[...edges,edge(taskId,projectId,"belongs_to")]:edges}) }
+export const removeTaskFromProject=(w:Workspace,id:string)=>assignTaskToProject(w,id)
+export function createSubtask(w:Workspace,parentId:string,input:WorkEntityInput):Workspace { assertEntity(w,parentId,"task");const projectId=getTaskProjectId(w,parentId);const created=createTask(w,input,projectId);const child=created.entities.at(-1)!;return touch({...created,edges:[...created.edges,edge(child.id,parentId,"child_of")]}) }
+export function assignTaskParent(w:Workspace,taskId:string,parentId?:string):Workspace { assertEntity(w,taskId,"task");if(parentId)assertEntity(w,parentId,"task");if(parentId===taskId)throw new Error("Task cannot parent itself");const edges=w.edges.filter(e=>!(e.sourceId===taskId&&e.type==="child_of"));let next=touch({...w,edges:parentId?[...edges,edge(taskId,parentId,"child_of")]:edges});if(parentId){const projectId=getTaskProjectId(next,parentId);next=assignTaskToProject(next,taskId,projectId)}return next }
+export function addDependency(w:Workspace,taskId:string,dependsOnId:string):Workspace { assertEntity(w,taskId,"task");assertEntity(w,dependsOnId,"task");if(taskId===dependsOnId)throw new Error("Task cannot depend on itself");if(w.edges.some(e=>e.type==="depends_on"&&e.sourceId===taskId&&e.targetId===dependsOnId))return w;return touch({...w,edges:[...w.edges,edge(taskId,dependsOnId,"depends_on")]}) }
+export const removeDependency=(w:Workspace,taskId:string,dependsOnId:string)=>touch({...w,edges:w.edges.filter(e=>!(e.type==="depends_on"&&e.sourceId===taskId&&e.targetId===dependsOnId))})
+export function deleteTask(w:Workspace,taskId:string):Workspace { assertEntity(w,taskId,"task");return touch({...w,entities:w.entities.filter(e=>e.id!==taskId),edges:w.edges.filter(e=>e.sourceId!==taskId&&e.targetId!==taskId)}) }
+export function convertEntityToTask(w:Workspace,entityId:string):Workspace { const current=assertEntity(w,entityId);const legacy=(current.metadata?.legacy??{}) as Record<string,unknown>;return touch({...w,entities:w.entities.map(e=>e.id===entityId?{...e,type:"task",status:e.status??"inbox",priority:e.priority??"none",updatedAt:Date.now(),metadata:{...e.metadata,legacy:{...legacy,contentType:"task"}}}:e)}) }

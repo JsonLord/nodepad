@@ -1,0 +1,27 @@
+[Unit]
+Description=Nodepad Personal Work Graph
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nodepad
+Group=nodepad
+WorkingDirectory=/opt/nodepad
+EnvironmentFile=/etc/nodepad/nodepad.env
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+ExecStartPre=/usr/bin/npm run db:check
+ExecStart=/usr/bin/npm start
+ExecStartPost=/usr/bin/sh -c 'for i in 1 2 3 4 5; do /usr/bin/curl -fsS http://127.0.0.1:3000/api/hub/health >/dev/null && exit 0; sleep 2; done; exit 1'
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nodepad /var/backups/nodepad
+
+[Install]
+WantedBy=multi-user.target
