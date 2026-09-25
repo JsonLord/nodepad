@@ -1,0 +1,9 @@
+import { NextRequest,NextResponse } from "next/server"
+import { isHubAuthenticated } from "../../../../lib/server/auth"
+import { getDatabase } from "../../../../lib/server/database"
+import { ControlPlaneConflictError,ControlPlaneRepository } from "../../../../lib/server/control-plane-repository"
+import { hubError,readLimitedJson,validateMutationOrigin,type HubErrorCode } from "../../../../lib/server/http"
+import {logHub} from "../../../../lib/server/log"
+export const runtime="nodejs"
+export function GET(r:NextRequest){if(!isHubAuthenticated(r))return hubError("AUTH_REQUIRED","Authentication required",401);return NextResponse.json(new ControlPlaneRepository(getDatabase()).load())}
+export async function PUT(r:NextRequest){if(!isHubAuthenticated(r))return hubError("AUTH_REQUIRED","Authentication required",401);const origin=validateMutationOrigin(r);if(origin)return origin;try{const p=await readLimitedJson(r) as {state:never;expectedRevision:number};const saved=new ControlPlaneRepository(getDatabase()).save(p.state,p.expectedRevision);logHub("control_plane_updated",{revision:saved.revision,agents:saved.agents.length,rules:saved.rules.length,assignments:saved.assignments.length,delegations:saved.delegations.length});return NextResponse.json(saved)}catch(e){if(e instanceof ControlPlaneConflictError)return hubError("REVISION_CONFLICT","Control plane changed on the server",409,{expectedRevision:e.expected,actualRevision:e.actual});const raw=e instanceof Error?e.message:"INTERNAL_ERROR",code=raw.split(":")[0] as HubErrorCode;if(["INVALID_PAYLOAD","INVALID_AGENT_CONFIG","INVALID_ROUTING_RULE","ASSIGNMENT_INVALID","AGENT_NOT_FOUND","INVALID_DELEGATION_STATE","AGTX_MAPPING_INVALID","AGTX_REPOSITORY_NOT_ALLOWED","AGTX_REPOSITORY_NOT_FOUND"].includes(code))return hubError(code,raw,400);return hubError("INTERNAL_ERROR","Control-plane state could not be persisted",500)}}

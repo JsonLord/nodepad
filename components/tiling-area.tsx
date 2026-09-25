@@ -135,7 +135,7 @@ export function TilingArea({
     return chunkedPages.map(page => buildPageTree(page))
   }, [chunkedPages])
 
-  const taskBlock = useMemo(() => blocks.find((b: TextBlock) => b.contentType === "task"), [blocks])
+  const taskBlocks = useMemo(() => blocks.filter((b: TextBlock) => b.contentType === "task"), [blocks])
 
   // Track which page is in view via IntersectionObserver
   useEffect(() => {
@@ -243,9 +243,9 @@ export function TilingArea({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-background">
-      {/* Task Header stays sticky at top */}
-      {taskBlock && (
-        <div className={`w-full shrink-0 p-1 z-10 transition-[opacity,filter] duration-300 ${activeConnectionId && !relatedIds.has(taskBlock.id) ? 'opacity-15 saturate-0' : 'opacity-100'}`}>
+      {/* Independently addressable task cards stay sticky at top */}
+      {taskBlocks.map(taskBlock => (
+        <div key={taskBlock.id} className={`w-full shrink-0 p-1 z-10 transition-[opacity,filter] duration-300 ${activeConnectionId && !relatedIds.has(taskBlock.id) ? 'opacity-15 saturate-0' : 'opacity-100'}`}>
             <TileCard
               block={taskBlock}
               isCollapsed={collapsedIds.has(taskBlock.id)}
@@ -270,7 +270,7 @@ export function TilingArea({
               onCopyToWorkspace={onCopyToWorkspace}
             />
         </div>
-      )}
+      ))}
 
       {/* Paged Mosaic with Vertical Scroll */}
       <div
@@ -303,7 +303,7 @@ export function TilingArea({
       </div>
 
       {/* Empty state — absolutely positioned so it centers identically across all views */}
-      {pageTrees.length === 0 && !taskBlock && (
+      {pageTrees.length === 0 && taskBlocks.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center gap-8 w-[420px]">
             <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/35">spatial research workspace</p>

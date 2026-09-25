@@ -1,0 +1,12 @@
+import {after,before,describe,it} from "node:test"
+import assert from "node:assert/strict"
+import {NextRequest} from "next/server"
+import {getDatabase,openDatabase,setDatabaseForTests} from "./database"
+import {sessionValue} from "./auth"
+import {WorkspaceRepository} from "./workspace-repository"
+import {ControlPlaneRepository} from "./control-plane-repository"
+import {createAgentProfile,emptyControlPlane} from "../control-plane/operations"
+import {POST as route} from "../../app/api/control/route/route"
+import {GET as health} from "../../app/api/decision/laya/health/route"
+import {RoutingDecisionRepository} from "./routing-decision-repository"
+describe("remote Laya routes",()=>{before(()=>{process.env.NODEPAD_API_TOKEN="laya-route-secret";delete process.env.LAYA_PROVIDER;const db=openDatabase(":memory:");setDatabaseForTests(db);new WorkspaceRepository(db).saveState({version:2,activeWorkspaceId:"w",savedAt:1,workspaces:[{id:"w",name:"W",entities:[{id:"t",type:"task",title:"Route safely",createdAt:1,updatedAt:1}],edges:[],collapsedIds:[],ghostNotes:[]}]});const s=createAgentProfile(emptyControlPlane(),{name:"Only",adapterType:"http",enabled:true,locality:"remote",capabilities:["code"],maxConcurrency:1,config:{baseUrl:"https:\/\/agent.test"}});new ControlPlaneRepository(db).save(s,0)});after(()=>setDatabaseForTests(undefined));const request=(auth=true)=>new NextRequest("http://localhost/api/control/route",{method:"POST",headers:{origin:"http://localhost",host:"localhost","content-type":"application/json",...(auth&&{cookie:`nodepad_hub_session=${sessionValue()}`})},body:JSON.stringify({taskEntityId:"t",requiresCode:true})});it("requires authentication and returns safe unconfigured health",async()=>{assert.equal((await route(request(false))).status,401);const h=await health();assert.deepEqual(await h.json(),{enabled:false,provider:"remote_openai",reachable:false,configuredModel:null,state:"not_configured",minConfidence:.7,minMargin:.15})});it("bypasses unconfigured Laya for deterministic routes and audits the result",async()=>{const response=await route(request());assert.equal(response.status,200);const body=await response.json();assert.equal(body.decision,"deterministic");assert.equal(body.decisionSource,"deterministic");assert.equal(new RoutingDecisionRepository(getDatabase()).list()[0].decisionId,body.decisionId)})})
