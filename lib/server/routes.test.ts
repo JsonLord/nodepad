@@ -50,6 +50,6 @@ describe("Hub route handlers", () => {
   })
 
   it("reports safe health metadata", async () => {
-    const response=health(); const body=await response.json(); assert.equal(response.status,200); assert.deepEqual(body,{status:"ok",database:"ready",schemaVersion:4,writable:true})
+    const response=health(); const body=await response.json(); assert.equal(response.status,200); assert.deepEqual(body,{status:"ok",database:"ready",schemaVersion:5,writable:true})
   })
 })

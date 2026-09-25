@@ -10,7 +10,13 @@ AGTX_BINARY=/path/to/agtx AGTX_TEST_REPO=/path/to/safe/repository npm run test:a
 
 The probe fails when either required variable is absent; a skipped probe is not compatibility evidence. It records `agtx --version`, performs the MCP handshake, verifies the complete required-tool set, creates and reads one harmless Backlog task, verifies its correlation marker and uniqueness, and reports safe response shapes and tool input schemas. It does not start a coding agent. The `move_task` and `wait_for_board_change` contracts are inspected from discovered MCP schemas without causing a phase transition or a blocking watcher during the harmless probe.
 
-As of this repository revision, the target Debian binary and test repository were not available in the coding environment. Therefore the generic HTTP execution phase has **not** begun. This preserves the required ordering: actual AGTX compatibility must be established before extracting a provider-neutral lifecycle from it.
+## Validated upstream contract
+
+The live compatibility gate passed on 2026-09-25 against the official Linux x86_64 release **AGTX 1.0.6**. The installer downloaded the checksummed release to `~/.local/bin/agtx`. Upstream `main` was inspected at commit `fc08258830265940a533aee15ce261d725fa5cfa`; the released binary identifies its MCP implementation as `rmcp 1.7.0`.
+
+The project-scoped server exposed `check_conflicts`, `create_task`, `create_tasks_batch`, `delete_task`, `get_config`, `get_notifications`, `get_task`, `get_transition_status`, `list_projects`, `list_tasks`, `move_task`, `read_pane_content`, `send_to_task`, `update_task`, and `wait_for_board_change`. The safe probe created exactly one correlated Backlog task in a disposable Git repository and read it back without moving it or launching an agent. Global mode was not used for the destructive portion: upstream requires a project to have been opened in the TUI and indexed before global discovery, while project-scoped mode is the stable interface Nodepad needs.
+
+The live contract differs from the original fixtures in three important ways. Task `status` values are lowercase (`backlog`, `planning`, and so on), `wait_for_board_change` accepts `timeout_secs` rather than `timeout_ms`, and `list_tasks` omits descriptions unless `include_description: true` is sent. The adapter contains these translations so AGTX-native details do not leak into the generic control plane. In project-scoped mode `list_projects` legitimately returns an empty list and `project_id` remains optional.
 
 AGTX is Nodepad's first and only executable adapter. Nodepad launches the operator-configured binary as `agtx mcp-serve` with an argument array and `shell:false`, then communicates exclusively through MCP JSON-RPC over stdio. stderr is diagnostic-only. Nodepad does not read AGTX files, control tmux, create worktrees, configure plugins, or launch coding agents itself.
 

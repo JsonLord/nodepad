@@ -86,13 +86,15 @@ try {
   const taskResult = await call("get_task", { ...projectArgs, task_id: taskId })
   const task = taskResult.task ?? taskResult
   if (String(identifier(task)) !== String(taskId)) throw new Error("get_task returned a different task ID")
+  const providerStatus = task.status ?? task.phase ?? task.column
+  if (typeof providerStatus !== "string" || !providerStatus) throw new Error("get_task returned no phase/status")
   if (!JSON.stringify(task).includes(correlation)) throw new Error("get_task did not preserve the correlation marker")
   const after = collection(await call("list_tasks", projectArgs), "tasks", "items")
   const matches = after.filter(item => JSON.stringify(item).includes(correlation))
   if (matches.length !== 1) throw new Error(`expected one correlated task, observed ${matches.length}`)
   const allowedActions = task.allowed_actions ?? task.allowedActions ?? []
   if (!Array.isArray(allowedActions)) throw new Error("allowed_actions is not an array")
-  console.log(JSON.stringify({ event: "agtx_mcp_contract_validated", agtxVersion: version, mcpServer: initialized.serverInfo ?? null, toolsObserved: tools.map(tool => tool.name).sort(), requiredToolsPresent: true, toolInputSchemas: Object.fromEntries(REQUIRED_TOOLS.map(name => [name, toolMap.get(name)?.inputSchema ?? null])), projectIdPresent: Boolean(projectId), projectResponseShape: shape(projectResult), taskId: String(taskId), taskResponseShape: shape(taskResult), allowedActions, moveTaskInputShape: toolMap.get("move_task")?.inputSchema ?? null, boardChangeInputShape: toolMap.get("wait_for_board_change")?.inputSchema ?? null, exactlyOneCorrelatedTask: true, executionStarted: false }, null, 2))
+  console.log(JSON.stringify({ event: "agtx_mcp_contract_validated", agtxVersion: version, mcpMode: "project-scoped", mcpServer: initialized.serverInfo ?? null, toolsObserved: tools.map(tool => tool.name).sort(), requiredToolsPresent: true, toolInputSchemas: Object.fromEntries(REQUIRED_TOOLS.map(name => [name, toolMap.get(name)?.inputSchema ?? null])), projectIdPresent: Boolean(projectId), projectResponseShape: shape(projectResult), taskId: String(taskId), providerStatus, taskResponseShape: shape(taskResult), allowedActions, moveTaskInputShape: toolMap.get("move_task")?.inputSchema ?? null, boardChangeInputShape: toolMap.get("wait_for_board_change")?.inputSchema ?? null, exactlyOneCorrelatedTask: true, executionStarted: false }, null, 2))
 } catch (error) {
   console.error(JSON.stringify({ event: "agtx_mcp_contract_failed", agtxVersion: version, message: error instanceof Error ? error.message : "unknown error", stderrTail: stderr }))
   process.exitCode = 1

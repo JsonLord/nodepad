@@ -13,7 +13,9 @@
     "db:restore": "node scripts/db-ops.mjs restore",
     "laya:probe": "node scripts/laya-probe.mjs",
     "test:laya-remote": "node scripts/laya-probe.mjs --decision",
-    "test:agtx": "node scripts/agtx-integration.mjs"
+    "test:agtx": "node scripts/agtx-integration.mjs",
+    "test:http-agent": "rm -rf .test-dist && tsc -p tsconfig.test.json && node --test '.test-dist/lib/http-agent/*.test.js' && rm -rf .test-dist",
+    "test:local-agent": "rm -rf .test-dist && tsc -p tsconfig.test.json && node --test '.test-dist/lib/local-agent/*.test.js' && rm -rf .test-dist"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

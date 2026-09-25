@@ -188,4 +188,20 @@ function runMigrations(db: DatabaseSync): void {
       logHub("db_migration",{version:4});db.exec("COMMIT")
     } catch(error){db.exec("ROLLBACK");throw error}
   }
+  if (current.version < 5) {
+    db.exec("BEGIN IMMEDIATE")
+    try {
+      db.exec(`
+        CREATE TABLE external_runs (id TEXT PRIMARY KEY,delegation_id TEXT NOT NULL UNIQUE,provider TEXT NOT NULL,external_run_id TEXT NOT NULL,provider_status TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,started_at INTEGER,finished_at INTEGER,metadata_json TEXT NOT NULL DEFAULT '{}',FOREIGN KEY(delegation_id) REFERENCES delegations(id) ON DELETE RESTRICT);
+        CREATE UNIQUE INDEX external_runs_provider_id_idx ON external_runs(provider,external_run_id);
+        CREATE TABLE execution_artifacts (id TEXT PRIMARY KEY,delegation_id TEXT NOT NULL,provider TEXT NOT NULL,type TEXT NOT NULL,label TEXT NOT NULL,external_ref TEXT,url TEXT,metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,FOREIGN KEY(delegation_id) REFERENCES delegations(id) ON DELETE CASCADE);
+        CREATE INDEX execution_artifacts_delegation_idx ON execution_artifacts(delegation_id,created_at);
+        INSERT OR IGNORE INTO external_runs(id,delegation_id,provider,external_run_id,provider_status,created_at,updated_at,started_at,finished_at,metadata_json)
+          SELECT 'migrated-' || id,id,json_extract(payload_json,'$.externalProvider'),json_extract(payload_json,'$.externalRunId'),json_extract(payload_json,'$.lastExternalStatus'),created_at,updated_at,json_extract(payload_json,'$.startedAt'),json_extract(payload_json,'$.finishedAt'),'{}'
+          FROM delegations WHERE json_extract(payload_json,'$.externalRunId') IS NOT NULL;
+      `)
+      db.prepare("INSERT INTO schema_migrations(version,applied_at) VALUES(?,?)").run(5,Date.now())
+      logHub("db_migration",{version:5});db.exec("COMMIT")
+    } catch(error){db.exec("ROLLBACK");throw error}
+  }
 }
