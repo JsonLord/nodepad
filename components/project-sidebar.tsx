@@ -36,7 +36,7 @@ import {
 interface Project {
   id: string
   name: string
-  blocks: any[]
+  entities: unknown[]
   collapsedIds: string[]
 }
 
@@ -266,7 +266,7 @@ export function ProjectSidebar({
                           </span>
                         )}
                         <span className="font-mono text-[8px] text-muted-foreground uppercase tracking-tighter font-bold">
-                          {project.blocks.length} {project.blocks.length === 1 ? 'node' : 'nodes'}
+                          {project.entities.length} {project.entities.length === 1 ? 'node' : 'nodes'}
                         </span>
                       </button>
 

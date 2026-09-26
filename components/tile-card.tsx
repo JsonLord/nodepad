@@ -7,24 +7,8 @@ import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CONTENT_TYPE_CONFIG, type ContentType } from "@/lib/content-types"
-
-export interface TextBlock {
-  id: string
-  text: string
-  timestamp: number
-  contentType: ContentType
-  category?: string
-  isEnriching?: boolean
-  statusText?: string
-  isError?: boolean
-  annotation?: string
-  confidence?: number | null
-  sources?: { url: string; title: string; siteName: string }[]
-  influencedBy?: string[]
-  isUnrelated?: boolean
-  isPinned?: boolean
-  subTasks?: { id: string; text: string; isDone: boolean; timestamp: number }[]
-}
+import type { TextBlock } from "@/lib/nodepad/legacy-types"
+export type { TextBlock } from "@/lib/nodepad/legacy-types"
 
 interface TileCardProps {
   block: TextBlock

@@ -1,0 +1,32 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
+    "outDir": ".test-dist",
+    "noEmit": false,
+    "declaration": false,
+    "incremental": false
+  },
+  "include": [
+    "lib/content-types.ts",
+    "lib/domain/**/*.ts",
+    "lib/graph/**/*.ts",
+    "lib/projects/**/*.ts",
+    "lib/control-plane/**/*.ts",
+    "lib/laya/**/*.ts",
+    "lib/agtx/**/*.ts",
+    "lib/execution/**/*.ts",
+    "lib/http-agent/**/*.ts",
+    "lib/local-agent/**/*.ts",
+    "lib/migrations/**/*.ts",
+    "lib/nodepad/**/*.ts",
+    "lib/storage/**/*.ts",
+    "lib/server/**/*.ts",
+    "app/api/hub/**/*.ts",
+    "app/api/control/**/*.ts",
+    "app/api/decision/**/*.ts",
+    "lib/nodepad-format.ts"
+  ]
+}

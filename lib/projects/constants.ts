@@ -1,0 +1,9 @@
+export const PROJECT_STATUSES = ["active", "paused", "completed", "archived"] as const
+export type ProjectStatus = typeof PROJECT_STATUSES[number]
+export const TASK_STATUSES = ["inbox", "next", "in_progress", "waiting", "done"] as const
+export type TaskStatus = typeof TASK_STATUSES[number]
+export const WORK_PRIORITIES = ["none", "low", "medium", "high", "urgent"] as const
+export type WorkPriority = typeof WORK_PRIORITIES[number]
+export const TASK_STATUS_LABELS: Record<TaskStatus,string> = { inbox:"Inbox", next:"Next", in_progress:"In Progress", waiting:"Waiting", done:"Done" }
+export const DEFAULT_PROJECT_STATUS: ProjectStatus = "active"
+export const DEFAULT_TASK_STATUS: TaskStatus = "inbox"
