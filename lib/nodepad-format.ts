@@ -1,188 +1,118 @@
-/**
- * .nodepad file format — full-fidelity project serialisation.
- *
- * A .nodepad file is a JSON object with a version field so future schema
- * changes can be handled gracefully. The file contains the complete project
- * state: blocks (with all AI annotations, connections, confidence scores,
- * sub-tasks), collapsed IDs, ghost notes history, and enough context for
- * the AI enrichment pipeline to continue seamlessly on re-import.
- *
- * Transient UI fields (isEnriching, isError, statusText) are stripped on
- * export and reset to safe defaults on import.
- */
-
+/** Versioned .nodepad import/export for canonical Personal Work Graph workspaces. */
+import type { Edge } from "./domain/edge"
+import type { Entity } from "./domain/entity"
+import type { Workspace } from "./domain/workspace"
 import type { ContentType } from "./content-types"
+import { isWorkspace } from "./storage/schema"
+import { legacyProjectToWorkspace } from "./migrations/browser-v1-to-v2"
 
-export const NODEPAD_FILE_VERSION = 1 as const
-
-// ── Serialised types ──────────────────────────────────────────────────────────
+export const NODEPAD_FILE_VERSION = 2 as const
 
 export interface NodepadBlock {
-  id: string
-  text: string
-  timestamp: number
-  contentType: ContentType
-  category?: string
-  annotation?: string
-  confidence?: number | null
+  id: string; text: string; timestamp: number; contentType: ContentType
+  category?: string; annotation?: string; confidence?: number | null
   sources?: { url: string; title: string; siteName: string }[]
-  influencedBy?: string[]        // stable block IDs (not category strings)
-  isUnrelated?: boolean
-  isPinned?: boolean
+  influencedBy?: string[]; isUnrelated?: boolean; isPinned?: boolean
   subTasks?: { id: string; text: string; isDone: boolean; timestamp: number }[]
 }
 
-export interface NodepadGhostNote {
-  id: string
-  text: string
-  category: string
-  isGenerating: boolean
+export interface NodepadV1File {
+  version: 1
+  exportedAt: number
+  project: {
+    id: string; name: string; blocks: NodepadBlock[]; collapsedIds: string[]
+    ghostNotes: Workspace["ghostNotes"]
+    lastGhostTexts?: string[]; lastGhostBlockCount?: number; lastGhostTimestamp?: number
+  }
 }
 
 export interface NodepadFile {
   version: typeof NODEPAD_FILE_VERSION
   exportedAt: number
-  project: {
-    id: string
-    name: string
-    blocks: NodepadBlock[]
-    collapsedIds: string[]
-    ghostNotes: NodepadGhostNote[]
-    lastGhostTexts?: string[]
-    lastGhostBlockCount?: number
-    lastGhostTimestamp?: number
-  }
+  workspace: Workspace
+  metadata: Record<string, unknown>
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
-
-/** Serialise a project to a NodepadFile, stripping transient UI state. */
-export function serialiseProject(project: {
-  id: string
-  name: string
-  blocks: any[]
-  collapsedIds: string[]
-  ghostNotes?: any[]
-  lastGhostTexts?: string[]
-  lastGhostBlockCount?: number
-  lastGhostTimestamp?: number
-}): NodepadFile {
-  return {
-    version: NODEPAD_FILE_VERSION,
-    exportedAt: Date.now(),
-    project: {
-      id: project.id,
-      name: project.name,
-      collapsedIds: project.collapsedIds ?? [],
-      ghostNotes: (project.ghostNotes ?? []).map((g: any) => ({
-        id: g.id,
-        text: g.text,
-        category: g.category,
-        isGenerating: false,          // never persist a generating state
-      })),
-      lastGhostTexts: project.lastGhostTexts,
-      lastGhostBlockCount: project.lastGhostBlockCount,
-      lastGhostTimestamp: project.lastGhostTimestamp,
-      blocks: project.blocks.map((b: any): NodepadBlock => ({
-        id:           b.id,
-        text:         b.text,
-        timestamp:    b.timestamp,
-        contentType:  b.contentType,
-        ...(b.category     !== undefined && { category:    b.category }),
-        ...(b.annotation   !== undefined && { annotation:  b.annotation }),
-        ...(b.confidence   !== undefined && { confidence:  b.confidence }),
-        ...(b.sources      !== undefined && { sources:     b.sources }),
-        ...(b.influencedBy !== undefined && { influencedBy: b.influencedBy }),
-        ...(b.isUnrelated  !== undefined && { isUnrelated:  b.isUnrelated }),
-        ...(b.isPinned                   && { isPinned:     b.isPinned }),
-        ...(b.subTasks?.length           && { subTasks:     b.subTasks }),
-      })),
-    },
-  }
+function cloneWorkspace(workspace: Workspace): Workspace {
+  return JSON.parse(JSON.stringify(workspace)) as Workspace
 }
 
-/** Trigger a browser download of a .nodepad file for the given project. */
-export function downloadNodepadFile(project: {
-  id: string; name: string; blocks: any[]; collapsedIds: string[]
-  ghostNotes?: any[]; lastGhostTexts?: string[]
-  lastGhostBlockCount?: number; lastGhostTimestamp?: number
-}): void {
-  const data = serialiseProject(project)
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json;charset=utf-8",
+export function serialiseProject(workspace: Workspace): NodepadFile {
+  const exported = cloneWorkspace(workspace)
+  exported.ghostNotes = exported.ghostNotes.map(note => ({ ...note, isGenerating: false }))
+  exported.entities = exported.entities.map(entity => {
+    const legacy = entity.metadata?.legacy
+    if (!legacy || typeof legacy !== "object") return entity
+    const { isEnriching: _isEnriching, isError: _isError, statusText: _statusText, ...stableLegacy } = legacy as Record<string, unknown>
+    return { ...entity, metadata: { ...entity.metadata, legacy: stableLegacy } }
   })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement("a")
-  const slug = project.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .slice(0, 60)
-  a.href     = url
+  return { version: NODEPAD_FILE_VERSION, exportedAt: Date.now(), workspace: exported, metadata: {} }
+}
+
+export function downloadNodepadFile(workspace: Workspace): void {
+  const data = serialiseProject(workspace)
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  const slug = workspace.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 60)
+  a.href = url
   a.download = `${slug || "project"}.nodepad`
   a.click()
   URL.revokeObjectURL(url)
 }
 
-// ── Import ────────────────────────────────────────────────────────────────────
-
 export class NodepadParseError extends Error {}
 
-/**
- * Parse a .nodepad file string and return a project object ready to push
- * into the projects list. Always assigns a fresh ID so there are no
- * collisions. Name conflicts get a copy suffix: "My Research (2)".
- */
-export function parseNodepadFile(
-  raw: string,
-  existingNames: string[],
-): {
-  id: string
-  name: string
-  blocks: any[]
-  collapsedIds: string[]
-  ghostNotes: any[]
-  lastGhostTexts?: string[]
-  lastGhostBlockCount?: number
-  lastGhostTimestamp?: number
-} {
-  let data: any
-  try {
-    data = JSON.parse(raw)
-  } catch {
-    throw new NodepadParseError("Not a valid .nodepad file — JSON parse failed.")
-  }
+function uniqueName(name: string, existingNames: string[]): string {
+  if (!existingNames.includes(name)) return name
+  let n = 2
+  while (existingNames.includes(`${name} (${n})`)) n++
+  return `${name} (${n})`
+}
 
-  if (!data || typeof data !== "object") {
-    throw new NodepadParseError("Not a valid .nodepad file — unexpected root type.")
-  }
-  if (!data.project || !Array.isArray(data.project.blocks)) {
-    throw new NodepadParseError("Not a valid .nodepad file — missing project.blocks array.")
-  }
+function importId(): string {
+  return `import-${Math.random().toString(36).slice(2, 10)}`
+}
 
-  const src = data.project
-
-  // Deduplicate name — always "Name (2)", "Name (3)", …
-  let name = (src.name as string) || "Imported Project"
-  if (existingNames.includes(name)) {
-    let n = 2
-    while (existingNames.includes(`${name} (${n})`)) n++
-    name = `${name} (${n})`
-  }
-
+/** Remap every graph reference under an import namespace, preventing cross-workspace collisions. */
+function remapImportedWorkspace(workspace: Workspace, existingNames: string[]): Workspace {
+  const workspaceId = importId()
+  const idMap = new Map(workspace.entities.map(entity => [entity.id, `${workspaceId}:${entity.id}`]))
+  const entities: Entity[] = workspace.entities.map(entity => ({
+    ...entity,
+    id: idMap.get(entity.id)!,
+    workspaceId,
+    metadata: entity.metadata ? { ...entity.metadata } : undefined,
+  }))
+  const edges: Edge[] = workspace.edges.map((edge, index) => ({
+    ...edge,
+    id: `${workspaceId}:edge:${index}`,
+    sourceId: idMap.get(edge.sourceId)!,
+    targetId: idMap.get(edge.targetId)!,
+  }))
   return {
-    id:           Math.random().toString(36).substring(2, 10),
-    name,
-    blocks:       (src.blocks as any[]).map(b => ({
-      ...b,
-      isEnriching: false,
-      isError:     false,
-      statusText:  undefined,
-    })),
-    collapsedIds: Array.isArray(src.collapsedIds) ? src.collapsedIds : [],
-    ghostNotes:   Array.isArray(src.ghostNotes)   ? src.ghostNotes   : [],
-    lastGhostTexts:       src.lastGhostTexts,
-    lastGhostBlockCount:  src.lastGhostBlockCount,
-    lastGhostTimestamp:   src.lastGhostTimestamp,
+    ...cloneWorkspace(workspace),
+    id: workspaceId,
+    name: uniqueName(workspace.name || "Imported Project", existingNames),
+    entities,
+    edges,
+    collapsedIds: workspace.collapsedIds.map(id => idMap.get(id)).filter((id): id is string => Boolean(id)),
   }
+}
+
+export function parseNodepadFile(raw: string, existingNames: string[]): Workspace {
+  let data: unknown
+  try { data = JSON.parse(raw) } catch { throw new NodepadParseError("Not a valid .nodepad file — JSON parse failed.") }
+  if (!data || typeof data !== "object") throw new NodepadParseError("Not a valid .nodepad file — unexpected root type.")
+  const candidate = data as { version?: number; workspace?: unknown; project?: NodepadV1File["project"] }
+  let workspace: Workspace
+  if (candidate.version === 2) {
+    if (!isWorkspace(candidate.workspace)) throw new NodepadParseError("Not a valid .nodepad v2 file — invalid workspace graph.")
+    workspace = candidate.workspace
+  } else if ((candidate.version === 1 || candidate.version === undefined) && candidate.project?.blocks) {
+    workspace = legacyProjectToWorkspace(candidate.project)
+  } else {
+    throw new NodepadParseError("Unsupported .nodepad version or missing workspace data.")
+  }
+  return remapImportedWorkspace(workspace, existingNames)
 }

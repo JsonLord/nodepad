@@ -1,0 +1,2 @@
+import {hubError,type HubErrorCode} from "./http"
+export function agtxHttpError(error:unknown){const code=(error instanceof Error?error.message:"AGTX_UNAVAILABLE").split(":")[0] as HubErrorCode,status=code==="AGTX_ACTION_NOT_ALLOWED"||code==="AGTX_MAPPING_INVALID"||code==="AGTX_DISPATCH_PRECONDITION_FAILED"?400:code==="AGTX_EXECUTION_DISABLED"?403:code==="EXECUTION_ADAPTER_NOT_ENABLED"?422:503;return hubError(code,error instanceof Error?error.message:"AGTX unavailable",status)}

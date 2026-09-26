@@ -1,0 +1,5 @@
+import {describe,it} from "node:test"
+import assert from "node:assert/strict"
+import {openDatabase} from "./database"
+import {RoutingDecisionRepository} from "./routing-decision-repository"
+describe("routing decision audit",()=>{it("persists deterministic and Laya decisions without secrets or prompts",()=>{const db=openDatabase(":memory:"),repo=new RoutingDecisionRepository(db),base={eligibleAgentIds:["a","b"],filteredAgents:[],matchedRuleIds:["r"],controlPlaneRevision:2};repo.saveDecision({...base,decisionId:"d1",selectedAgentId:"a",probabilities:{},decision:"deterministic",decisionSource:"deterministic",createdAt:1});repo.saveDecision({...base,decisionId:"d2",selectedAgentId:"b",probabilities:{a:.2,b:.8},confidence:.8,margin:.6,decision:"selected",decisionSource:"laya",remoteModelId:"laya",latencyMs:12,createdAt:2});const rows=repo.list();assert.deepEqual(rows.map(x=>x.decisionSource),["laya","deterministic"]);assert.equal(rows[0].probabilities.b,.8);assert.doesNotMatch(JSON.stringify(rows),/API_KEY|Bearer|secret/i);db.close()})})

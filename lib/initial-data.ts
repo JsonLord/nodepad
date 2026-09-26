@@ -1,10 +1,11 @@
-import type { Project } from "@/app/page.tsx"
+import type { Workspace } from "@/lib/domain/workspace"
 
-export const INITIAL_PROJECTS: Project[] = [
+export const INITIAL_PROJECTS: Workspace[] = [
   {
     id: "p-welcome",
     name: "✨ New Research",
-    blocks: [],
+    entities: [],
+    edges: [],
     collapsedIds: [],
     ghostNotes: []
   }
