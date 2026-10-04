@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import { synthesisRegistry } from "../lib/synthesis/registry";import { runSynthesis } from "../lib/synthesis/runner";import { evidence,fixture } from "./helpers"
+test("registry has 130 unique executable definitions",async()=>{assert.equal(synthesisRegistry.length,130);assert.equal(new Set(synthesisRegistry.map(x=>x.id)).size,130);const w=fixture();w.evidence=[evidence("e1","support")];for(const d of synthesisRegistry)assert.equal((await runSynthesis(w,d.id,"run")).synthesisType,d.id)})
