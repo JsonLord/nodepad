@@ -1,0 +1,90 @@
+[
+  {
+    "query": "the confidence numbers feel too generous lately, can we tune the thresholds against these 8 past launches where we already know how they turned out",
+    "should_trigger": true
+  },
+  {
+    "query": "our model keeps flashing Go on stuff that later flopped. here are 12 shipped bets with what actually happened, fix the weights so it stops doing that",
+    "should_trigger": true
+  },
+  {
+    "query": "i think the gate cutoff is too loose. check it against past calls and tell me what number to move it to",
+    "should_trigger": true
+  },
+  {
+    "query": "validate the scoring against calibration/cases.md and flag where the verdict didn't match the real outcome",
+    "should_trigger": true
+  },
+  {
+    "query": "we've got a sheet of 15 old feature decisions with their actual results. use them to see if our evidence weights are even right",
+    "should_trigger": true
+  },
+  {
+    "query": "the crispness bar feels off, sanity-check it against the problems we actually shipped vs the ones we killed",
+    "should_trigger": true
+  },
+  {
+    "query": "three things it scored Research turned out great. that's a false-negative pattern, right? adjust the constants",
+    "should_trigger": true
+  },
+  {
+    "query": "backtest the scoring formula on our 2025 launches and recommend new threshold values",
+    "should_trigger": true
+  },
+  {
+    "query": "are the diversity factors and the gate threshold actually calibrated? here are 10 past decisions with known outcomes to test against",
+    "should_trigger": true
+  },
+  {
+    "query": "i don't trust the confidence math anymore. we have a stack of past bets and their outcomes, figure out where the scoring is systematically wrong",
+    "should_trigger": true
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push, and do we even have enough data to make that call yet?",
+    "should_trigger": false
+  },
+  {
+    "query": "does the SSO bet have enough evidence behind it to greenlight, and what's still missing?",
+    "should_trigger": false
+  },
+  {
+    "query": "the confidence score on this one opportunity looks way too high. is it actually ready to decide or not?",
+    "should_trigger": false
+  },
+  {
+    "query": "rank these 8 feature ideas by what's most worth doing, we've got analytics plus support data",
+    "should_trigger": false
+  },
+  {
+    "query": "review our north-star and activation metrics for the month and flag what moved",
+    "should_trigger": false
+  },
+  {
+    "query": "our activation rate dropped 4 points last week, dig into the numbers and tell me why",
+    "should_trigger": false
+  },
+  {
+    "query": "poke holes in our Q3 roadmap before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "grade how crisp this problem statement is: 'onboarding is bad'",
+    "should_trigger": false
+  },
+  {
+    "query": "has our top opportunity drifted since last month, did confidence actually improve or are we just spinning?",
+    "should_trigger": false
+  },
+  {
+    "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "turn this pile of 30 user interview transcripts into the top themes ranked by how often they came up",
+    "should_trigger": false
+  },
+  {
+    "query": "build me a scorecard of this quarter's product metrics with the trends called out for the exec review",
+    "should_trigger": false
+  }
+]

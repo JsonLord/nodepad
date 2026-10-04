@@ -1,0 +1,86 @@
+[
+  {
+    "query": "what data do I even have to make product decisions? scan my connectors and tell me the confidence ceiling",
+    "should_trigger": true
+  },
+  {
+    "query": "scan my sources and tell me where product insights could realistically come from",
+    "should_trigger": true
+  },
+  {
+    "query": "what can I connect for product decisions right now? show me whats callable and whats missing",
+    "should_trigger": true
+  },
+  {
+    "query": "im starting fresh in this repo, before we frame anything map out where my product data actually lives",
+    "should_trigger": true
+  },
+  {
+    "query": "do i have intercom, amplitude, and zendesk hooked up? give me an inventory of my product-data sources and how strong each can get",
+    "should_trigger": true
+  },
+  {
+    "query": "whats the best decision confidence i can realistically hit given only the sources i have access to today?",
+    "should_trigger": true
+  },
+  {
+    "query": "build me a source map of my product evidence and flag what i'd have to upload as a CSV since it cant be connected",
+    "should_trigger": true
+  },
+  {
+    "query": "i just want the landscape of where signal could come from, not the actual data pulled yet",
+    "should_trigger": true
+  },
+  {
+    "query": "refresh the source inventory in .product-eval/onboarding/sources.md, i think i wired up linear and pendo since we last looked",
+    "should_trigger": true
+  },
+  {
+    "query": "new project, what's the ceiling on how confident any call could be with what i've got connected?",
+    "should_trigger": true
+  },
+  {
+    "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "now that you know where my data lives, go ahead and pull everything from intercom and amplitude into the scope",
+    "should_trigger": false
+  },
+  {
+    "query": "collect the last 90 days of support tickets and reviews and normalize them so we can analyze",
+    "should_trigger": false
+  },
+  {
+    "query": "synthesize the evidence we just gathered into the main problem themes",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a folder of 30 user-interview transcripts, pull out the main themes and insights for me",
+    "should_trigger": false
+  },
+  {
+    "query": "here are 200 raw survey responses we just got back, make sense of them and rank the findings",
+    "should_trigger": false
+  },
+  {
+    "query": "review our north-star and activation metrics for the month and flag what moved",
+    "should_trigger": false
+  },
+  {
+    "query": "put together our monthly product scorecard and call out the biggest trend changes",
+    "should_trigger": false
+  },
+  {
+    "query": "give me a competitive brief on Linear vs Jira for our sales battlecard",
+    "should_trigger": false
+  },
+  {
+    "query": "update our Now/Next/Later roadmap, move the billing rework to Next and add the SSO epic to Now",
+    "should_trigger": false
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push? do we even have enough evidence to call it?",
+    "should_trigger": false
+  }
+]

@@ -1,0 +1,12 @@
+# OS / editor cruft
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Note: product-eval.plugin (the built package) is intentionally committed.
+# evals/checks/validate_plugin.py verifies it byte-matches the source tree,
+# so rebuild it after any change:  rm -f product-eval.plugin && \
+#   zip -r -X -q /tmp/pe.plugin . -x '*.plugin' && mv /tmp/pe.plugin product-eval.plugin

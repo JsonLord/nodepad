@@ -1,0 +1,82 @@
+[
+  {
+    "query": "make a scorecard from the ranked opportunities in this product-eval scope",
+    "should_trigger": true
+  },
+  {
+    "query": "turn the prioritization results into a visual dashboard i can share with leadership",
+    "should_trigger": true
+  },
+  {
+    "query": "show me the ranked opportunities as an interactive html scorecard with value, confidence, verdicts and gaps",
+    "should_trigger": true
+  },
+  {
+    "query": "after that backlog ranking, create the scorecard view with the value-confidence quadrant",
+    "should_trigger": true
+  },
+  {
+    "query": "render a product decision dashboard from .product-eval/onboarding/scores.md and decisions-log.md",
+    "should_trigger": true
+  },
+  {
+    "query": "give me a rich visual output for the readiness verdicts and opportunity ranking",
+    "should_trigger": true
+  },
+  {
+    "query": "build a shareable html page of the opportunities, confidence bands, evidence weight, and open gaps",
+    "should_trigger": true
+  },
+  {
+    "query": "make this prioritization easier to scan with cards, bands, and the top customer quotes",
+    "should_trigger": true
+  },
+  {
+    "query": "open a scorecard for the current investigation so PMs can sort and act on the top bets",
+    "should_trigger": true
+  },
+  {
+    "query": "can you generate the decision dashboard after running prioritize-backlog",
+    "should_trigger": true
+  },
+  {
+    "query": "review our north-star and activation metrics for the month and flag what moved",
+    "should_trigger": false
+  },
+  {
+    "query": "build me a scorecard of this quarter's product metrics with trends called out for the exec review",
+    "should_trigger": false
+  },
+  {
+    "query": "rank these 8 feature ideas by what's most worth doing, we have analytics and support data",
+    "should_trigger": false
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push? do we have enough evidence to call it?",
+    "should_trigger": false
+  },
+  {
+    "query": "write the decision memo for the billing rework with options and success criteria",
+    "should_trigger": false
+  },
+  {
+    "query": "turn the approved decision into a spec i can hand straight to claude code",
+    "should_trigger": false
+  },
+  {
+    "query": "poke holes in our Q3 roadmap before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "what data do I have connected for product decisions?",
+    "should_trigger": false
+  },
+  {
+    "query": "pull the recurring complaints from zendesk and g2 and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "draft the opportunity brief for the notifications problem",
+    "should_trigger": false
+  }
+]

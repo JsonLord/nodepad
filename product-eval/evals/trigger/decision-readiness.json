@@ -1,0 +1,82 @@
+[
+  {
+    "query": "is it worth building SSO before our enterprise push? do we even have the data to call it?",
+    "should_trigger": true
+  },
+  {
+    "query": "do we have enough evidence to greenlight the in-app notifications rebuild, or are we just guessing?",
+    "should_trigger": true
+  },
+  {
+    "query": "are we ready to commit to the billing rework? tell me what's still missing before i say yes",
+    "should_trigger": true
+  },
+  {
+    "query": "we've got ~40 intercom tickets and an amplitude drop-off chart pointing at onboarding step 3. is that actually enough to decide to fix it?",
+    "should_trigger": true
+  },
+  {
+    "query": "honestly, what's the evidence behind shipping a mobile app this half? strong enough to pull the trigger or not?",
+    "should_trigger": true
+  },
+  {
+    "query": "before i tell eng to start, can you judge whether the dark-mode request has enough signal to justify it",
+    "should_trigger": true
+  },
+  {
+    "query": "i keep going back and forth on the API rate-limit feature. do we have the right to make this call yet, and what gaps should i close first?",
+    "should_trigger": true
+  },
+  {
+    "query": "gut check: is team-permissions a defensible build given what we actually know, or do we need more data before committing?",
+    "should_trigger": true
+  },
+  {
+    "query": "we think churned accounts wanted Slack alerts. is that conviction earned by the evidence, or wishful thinking? want a yes/no and the holes",
+    "should_trigger": true
+  },
+  {
+    "query": "my PM swears the saved-views feature is a slam dunk. can you sanity-check whether the evidence actually backs committing to it?",
+    "should_trigger": true
+  },
+  {
+    "query": "rank these 8 feature ideas by what's most worth doing, we have analytics + support data",
+    "should_trigger": false
+  },
+  {
+    "query": "which of our three enterprise bets has the strongest case? line them up and score them so we know where to spend",
+    "should_trigger": false
+  },
+  {
+    "query": "poke holes in our Q3 roadmap before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "stress-test this PRD for the new onboarding flow before we commit to it next sprint",
+    "should_trigger": false
+  },
+  {
+    "query": "review our north-star and activation metrics for the month and flag what moved",
+    "should_trigger": false
+  },
+  {
+    "query": "how did retention and DAU trend last quarter vs target? give me the scorecard",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me",
+    "should_trigger": false
+  },
+  {
+    "query": "here are 200 raw survey responses, make sense of them and rank the findings by frequency",
+    "should_trigger": false
+  },
+  {
+    "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "grade how crisp this problem statement is: 'onboarding is bad'",
+    "should_trigger": false
+  }
+]

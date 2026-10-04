@@ -1,0 +1,102 @@
+[
+  {
+    "query": "start",
+    "should_trigger": true
+  },
+  {
+    "query": "set up product-eval for my product",
+    "should_trigger": true
+  },
+  {
+    "query": "help me decide what to build next, but first ask me what context and data you need",
+    "should_trigger": true
+  },
+  {
+    "query": "help me prepare a decision report and set up the product context first",
+    "should_trigger": true
+  },
+  {
+    "query": "hey just installed this, help me get going — where do i even start?",
+    "should_trigger": true
+  },
+  {
+    "query": "what can this plugin actually do for me?",
+    "should_trigger": true
+  },
+  {
+    "query": "i want to build something in the observability tooling space but don't know what — help me find the real problems worth solving",
+    "should_trigger": true
+  },
+  {
+    "query": "should we build an AI changelog generator? honestly not sure, just point me in the right direction",
+    "should_trigger": true
+  },
+  {
+    "query": "i'm a PM at a fintech trying to find our next big bet — how does this thing even work?",
+    "should_trigger": true
+  },
+  {
+    "query": "help me figure out what to work on next, i don't even know which step to begin with",
+    "should_trigger": true
+  },
+  {
+    "query": "explore the API-monitoring market for me and show me where the gaps are",
+    "should_trigger": true
+  },
+  {
+    "query": "we want to figure out what to build next for our payments product — take it from the top",
+    "should_trigger": true
+  },
+  {
+    "query": "give me the lay of the land here and kick off an investigation into the CI/CD space",
+    "should_trigger": true
+  },
+  {
+    "query": "synthesize the evidence we just pulled into the main problem themes",
+    "should_trigger": false
+  },
+  {
+    "query": "cluster the signal we already gathered into a handful of themes",
+    "should_trigger": false
+  },
+  {
+    "query": "rank these 8 feature ideas by what's most worth building — we already have the analytics and support data",
+    "should_trigger": false
+  },
+  {
+    "query": "poke holes in our Q3 roadmap before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "red-team this PRD and tell me where it falls apart before we commit",
+    "should_trigger": false
+  },
+  {
+    "query": "what product data do i even have to work with? scan my connectors and tell me the confidence ceiling",
+    "should_trigger": false
+  },
+  {
+    "query": "draft the opportunity brief for the notifications problem — both the narrative and the FAQ version",
+    "should_trigger": false
+  },
+  {
+    "query": "let's brainstorm some fresh directions for our analytics product, i want a sharp thinking partner",
+    "should_trigger": false
+  },
+  {
+    "query": "be my sounding board for a bit — i want to riff on new ideas for our developer tools",
+    "should_trigger": false
+  },
+  {
+    "query": "i've got 30 user-interview transcripts in a folder, pull out the main themes and insights for me",
+    "should_trigger": false
+  },
+  {
+    "query": "update our Now/Next/Later roadmap — move the billing rework to Next and add the SSO epic to Now",
+    "should_trigger": false
+  },
+  {
+    "query": "reprioritize the roadmap, that dependency slipped so push the search revamp to Later",
+    "should_trigger": false
+  }
+]

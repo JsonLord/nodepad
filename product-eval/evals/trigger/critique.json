@@ -1,0 +1,90 @@
+[
+  {
+    "query": "grade how crisp this problem statement is: 'onboarding is bad'",
+    "should_trigger": true
+  },
+  {
+    "query": "is this one-liner actually sharp enough to take into a brief? 'we need better reporting'",
+    "should_trigger": true
+  },
+  {
+    "query": "poke holes in the findings from our churn investigation before I write them up",
+    "should_trigger": true
+  },
+  {
+    "query": "red-team this FAQ we drafted for the SSO opportunity brief, attack the weak answers",
+    "should_trigger": true
+  },
+  {
+    "query": "is this crisp enough? 'users want a faster dashboard' - score it and tell me what's missing",
+    "should_trigger": true
+  },
+  {
+    "query": "before we move from evidence to scoring, can someone fresh tear into our themes handoff and flag what's not ready",
+    "should_trigger": true
+  },
+  {
+    "query": "put these findings in front of a skeptical customer, a CFO, and an engineer and see where they fall apart",
+    "should_trigger": true
+  },
+  {
+    "query": "gate this opportunity brief before it advances to the decision stage, don't rubber-stamp it",
+    "should_trigger": true
+  },
+  {
+    "query": "my one-liner is 'reduce friction in checkout' - how tight is it and can you rewrite it sharper",
+    "should_trigger": true
+  },
+  {
+    "query": "give the conclusions in this synthesis doc a fresh adversarial read from someone who wasn't in the room",
+    "should_trigger": true
+  },
+  {
+    "query": "does this problem statement sit at the right altitude and actually name a persona, or is it mush?",
+    "should_trigger": true
+  },
+  {
+    "query": "poke holes in our Q3 roadmap before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "stress-test our whole go-to-market plan for the enterprise tier before we commit to it",
+    "should_trigger": false
+  },
+  {
+    "query": "adversarially pressure-test this PRD and the bet behind it before we green-light the sprint",
+    "should_trigger": false
+  },
+  {
+    "query": "let's brainstorm some new directions for our analytics product, i want a sharp thinking partner",
+    "should_trigger": false
+  },
+  {
+    "query": "be my sparring partner and help me explore the problem space around activation, throw ideas at me",
+    "should_trigger": false
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push? do we even have the data to call it?",
+    "should_trigger": false
+  },
+  {
+    "query": "synthesize the evidence we just pulled into the main problem-themes",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me",
+    "should_trigger": false
+  },
+  {
+    "query": "here are our raw survey responses and a stack of support tickets, make sense of them into findings",
+    "should_trigger": false
+  },
+  {
+    "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "reprioritize the roadmap into now/next/later now that the SSO bet jumped the queue",
+    "should_trigger": false
+  }
+]

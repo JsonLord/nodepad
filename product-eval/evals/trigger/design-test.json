@@ -1,0 +1,82 @@
+[
+  {
+    "query": "decision-readiness says run a research sprint for SSO — design the cheapest test to close the gap",
+    "should_trigger": true
+  },
+  {
+    "query": "how do we validate this billing bet before engineering starts building?",
+    "should_trigger": true
+  },
+  {
+    "query": "what's the cheapest experiment that would de-risk the notifications idea?",
+    "should_trigger": true
+  },
+  {
+    "query": "turn these readiness gaps into a concrete validation test with a pass fail threshold",
+    "should_trigger": true
+  },
+  {
+    "query": "we need a smoke test for the enterprise audit logs bet before committing the quarter",
+    "should_trigger": true
+  },
+  {
+    "query": "design a quick fake-door test to see if customers actually want scheduled csv exports",
+    "should_trigger": true
+  },
+  {
+    "query": "the idea is promising but evidence is thin; tell me the fastest research sprint to run",
+    "should_trigger": true
+  },
+  {
+    "query": "what would prove or disprove this onboarding hypothesis in two weeks?",
+    "should_trigger": true
+  },
+  {
+    "query": "give me the riskiest assumption, method, sample, instrumentation, duration and pass fail bar",
+    "should_trigger": true
+  },
+  {
+    "query": "de-risk this feature idea with a small experiment before we write a spec",
+    "should_trigger": true
+  },
+  {
+    "query": "pull the recurring complaints from zendesk and g2 and grade how solid each signal is",
+    "should_trigger": false
+  },
+  {
+    "query": "is SSO worth building before the enterprise push, do we have enough evidence?",
+    "should_trigger": false
+  },
+  {
+    "query": "rank these 8 feature ideas by what's most worth doing",
+    "should_trigger": false
+  },
+  {
+    "query": "write the opportunity brief for the approved billing decision",
+    "should_trigger": false
+  },
+  {
+    "query": "turn the approved decision into a build spec for claude code",
+    "should_trigger": false
+  },
+  {
+    "query": "pressure-test our Q3 roadmap before leadership review",
+    "should_trigger": false
+  },
+  {
+    "query": "what product-data sources do I have connected?",
+    "should_trigger": false
+  },
+  {
+    "query": "synthesize the evidence we pulled into problem themes",
+    "should_trigger": false
+  },
+  {
+    "query": "make a scorecard from the ranked opportunities",
+    "should_trigger": false
+  },
+  {
+    "query": "update our Now Next Later roadmap with the new SSO epic",
+    "should_trigger": false
+  }
+]

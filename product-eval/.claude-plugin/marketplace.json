@@ -1,0 +1,16 @@
+{
+  "name": "product-eval-marketplace",
+  "owner": {
+    "name": "Narek Gevorgyan"
+  },
+  "plugins": [
+    {
+      "name": "product-eval",
+      "source": "./",
+      "version": "0.14.2",
+      "description": "Evidence-gated product decisions: scope product context and evidence, then rank opportunities, decide on one bet, pressure-test plans, and write briefs/specs/scorecards.",
+      "homepage": "https://github.com/sparkline-ventures/product-eval",
+      "repository": "https://github.com/sparkline-ventures/product-eval"
+    }
+  ]
+}

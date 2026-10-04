@@ -1,0 +1,28 @@
+[
+  {"query": "synthesize the evidence we just pulled into themes", "should_trigger": true},
+  {"query": "ok we ran gather-evidence yesterday and pulled a bunch of tickets, reviews and analytics into the scope, now cluster all that into the main problem themes", "should_trigger": true},
+  {"query": "what are the recurring patterns across the evidence we collected for the onboarding scope, and how confident should we be in each theme", "should_trigger": true},
+  {"query": "group the weighted evidence items in .product-eval/onboarding/evidence into problem clusters for me", "should_trigger": true},
+  {"query": "we've got the signal gathered for this investigation, what's trending over time and what themes pop out", "should_trigger": true},
+  {"query": "turn the evidence we gathered into themes i can feed into prioritization", "should_trigger": true},
+  {"query": "now that the data's in for this scope, find the clusters and tell me where the gaps are", "should_trigger": true},
+  {"query": "what problem-themes emerge from all the evidence in this investigation, and which ones are getting worse month over month", "should_trigger": true},
+  {"query": "consolidate everything we collected on the billing pain into a few clear themes with confidence reasoning", "should_trigger": true},
+  {"query": "we pulled g2 reviews, intercom and amplitude into the scope last week, summarize the patterns into themes", "should_trigger": true},
+  {"query": "can you frame this up properly? right now all we've got is 'onboarding feels clunky' and i need it sharp enough that someone could actually build against it", "should_trigger": true},
+  {"query": "users keep dropping off somewhere in the signup flow. help me turn that into a real problem statement", "should_trigger": true},
+  {"query": "the eng lead handed me 'add SSO' as the ask, but that feels like a solution dressed up as a requirement. what's the real underlying problem here?", "should_trigger": true},
+  {"query": "everyone keeps saying 'make the dashboard better' and it's going nowhere because it's so broad. reshape it into an actual problem we could solve", "should_trigger": true},
+  {"query": "'enterprise customers churn' is one giant blob. split it into a few separate problems that are each small enough to build for", "should_trigger": true},
+
+  {"query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me", "should_trigger": false},
+  {"query": "just got back from 12 customer interviews, here are my raw notes, help me make sense of them and pull out themes", "should_trigger": false},
+  {"query": "we ran a survey and got 400 open-text responses in a csv, synthesize them into key insights ranked by frequency", "should_trigger": false},
+  {"query": "here's a dump of 200 support tickets exported from zendesk, what are the common themes and what should we prioritize", "should_trigger": false},
+  {"query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is", "should_trigger": false},
+  {"query": "rank these 8 feature ideas by what's most worth doing, we have analytics and support data", "should_trigger": false},
+  {"query": "update our Now/Next/Later roadmap, move the billing rework to Next and add the SSO epic to Now", "should_trigger": false},
+  {"query": "review our north-star and activation metrics for the month and flag what moved", "should_trigger": false},
+  {"query": "let's brainstorm some new directions for our analytics product, i want a sharp thinking partner", "should_trigger": false},
+  {"query": "draft the opportunity brief for the notifications problem, both the narrative and the FAQ version", "should_trigger": false}
+]

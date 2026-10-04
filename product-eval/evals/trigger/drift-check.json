@@ -1,0 +1,26 @@
+[
+  {"query": "what changed since last month", "should_trigger": true},
+  {"query": "has this investigation drifted since we last looked at it", "should_trigger": true},
+  {"query": "compare the current state of the onboarding scope to the snapshot from last quarter and tell me what moved", "should_trigger": true},
+  {"query": "is the confidence trajectory on this bet actually improving, or are we just churning without new evidence coming in", "should_trigger": true},
+  {"query": "audit this scope before we re-decide — what's changed since the last decision was logged", "should_trigger": true},
+  {"query": "did our problem statement drift away from the evidence since the first version of the brief", "should_trigger": true},
+  {"query": "diff the billing investigation now versus the prior version — scores, evidence, and framing", "should_trigger": true},
+  {"query": "we snapshotted this scope a month ago — what evidence got added or retired, and how did Value and Confidence move", "should_trigger": true},
+  {"query": "are we accumulating real confidence on the activation problem over time, or has it just been flat churn", "should_trigger": true},
+  {"query": "show me what moved in this investigation since the last git ref", "should_trigger": true},
+  {"query": "has the narrative on the enterprise-churn bet been quietly reframed compared to the earlier brief", "should_trigger": true},
+  {"query": "set up a weekly digest of what moved across my investigations", "should_trigger": true},
+  {"query": "between the snapshot and now, which themes are new, which faded, and which got merged for this scope", "should_trigger": true},
+  {"query": "some of our evidence may have gone stale after the last release — compare against the prior snapshot and flag what got retired", "should_trigger": true},
+
+  {"query": "what's trending across the evidence we just gathered — which themes are getting worse month over month", "should_trigger": false},
+  {"query": "cluster the evidence in this scope into problem themes with confidence reasoning", "should_trigger": false},
+  {"query": "review our product metrics dashboard for the month and flag what moved on activation and retention", "should_trigger": false},
+  {"query": "our north-star metric dropped 8% this week, dig into what changed in the funnel", "should_trigger": false},
+  {"query": "rank these opportunities by value and confidence and tell me what to build next", "should_trigger": false},
+  {"query": "pull the latest zendesk tickets and g2 reviews into the scope", "should_trigger": false},
+  {"query": "do we have enough evidence to decide on the SSO bet yet", "should_trigger": false},
+  {"query": "let's brainstorm some new directions for our analytics product", "should_trigger": false},
+  {"query": "compare how our competitors solved onboarding versus how we did", "should_trigger": false}
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "query": "the SSO bet got approved, can you turn it into a spec i can hand straight to claude code?",
+    "should_trigger": true
+  },
+  {
+    "query": "the notifications brief got approved yesterday — make it buildable, give me an agent-ready build spec",
+    "should_trigger": true
+  },
+  {
+    "query": "convert our approved opportunity brief into a build spec with given/when/then acceptance criteria",
+    "should_trigger": true
+  },
+  {
+    "query": "we signed off on the csv export bet — strip the prose and emit a structured spec claude code can just execute",
+    "should_trigger": true
+  },
+  {
+    "query": "run the design mode on the approved onboarding decision so i can hand the screen-by-screen breakdown to figma",
+    "should_trigger": true
+  },
+  {
+    "query": "we greenlit the billing rework, now produce the implementation spec for an AI builder with scope in/out and an MVP slice first",
+    "should_trigger": true
+  },
+  {
+    "query": "take this approved brief and make a figma-ready spec: every screen, its empty/loading/error states, and the primary CTA per view",
+    "should_trigger": true
+  },
+  {
+    "query": "decision's been signed off, just give me a literal testable build doc to drop into codex, no narrative",
+    "should_trigger": true
+  },
+  {
+    "query": "hand this approved billing brief to claude code with the data model, edge cases, success metrics and instrumentation",
+    "should_trigger": true
+  },
+  {
+    "query": "it passed readiness last week, can you turn it into something an agent can actually build from?",
+    "should_trigger": true
+  },
+  {
+    "query": "the export feature got the go-ahead — break it into screens and states for our designer to mock in figma",
+    "should_trigger": true
+  },
+  {
+    "query": "write a PRD for the new CSV export feature so engineering can pick it up",
+    "should_trigger": false
+  },
+  {
+    "query": "draft a feature spec with goals, non-goals and acceptance criteria so the devs can start the export work",
+    "should_trigger": false
+  },
+  {
+    "query": "draft the opportunity brief for the notifications problem, both the narrative and the FAQ version",
+    "should_trigger": false
+  },
+  {
+    "query": "write up the human-readable brief for the SSO opportunity — problem, why now, impact, the ask",
+    "should_trigger": false
+  },
+  {
+    "query": "write a decision memo for the SSO bet — options, falsifiable criteria, metrics, the ask and a deadline",
+    "should_trigger": false
+  },
+  {
+    "query": "put together the memo so leadership can decide on billing rework: the options, what would prove us wrong, and the deadline",
+    "should_trigger": false
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push? do we even have the evidence to call it yet?",
+    "should_trigger": false
+  },
+  {
+    "query": "poke holes in our Q3 roadmap and the export PRD before the leadership review on friday",
+    "should_trigger": false
+  },
+  {
+    "query": "update our Now/Next/Later roadmap, move the billing rework to Next and add the SSO epic to Now",
+    "should_trigger": false
+  },
+  {
+    "query": "implement this approved figma design as react code for the onboarding flow",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me",
+    "should_trigger": false
+  }
+]

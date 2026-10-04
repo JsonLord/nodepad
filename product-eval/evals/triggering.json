@@ -1,0 +1,33 @@
+{
+  "purpose": "Routing / collision evals. Each query maps to the skill that SHOULD win. 'anthropic-pm:*' and 'none' mark cases that must NOT trigger one of our skills (near-misses against Anthropic's product-management plugin). To run the per-skill description optimizer (skill-creator run_loop.py), transform per skill: queries whose expected == <skill> are should_trigger:true, all others false.",
+  "skills": ["start","discover-sources","gather-evidence","synthesize","prioritize-backlog","decision-readiness","design-test","pressure-test","critique","write-brief","to-build-brief","scorecard","drift-check","calibrate"],
+  "cases": [
+    {"id": 1, "query": "ok i've got ~200 intercom tickets exported and our amplitude funnel open — what should we actually build next quarter for onboarding?", "expected": "start", "note": "setup, then evaluate job and chains"},
+    {"id": 2, "query": "is it worth building SSO before our enterprise push? do we even have the data to call it?", "expected": "decision-readiness"},
+    {"id": 3, "query": "rank these 8 feature ideas by what's most worth doing — we have analytics + support data", "expected": "prioritize-backlog"},
+    {"id": 4, "query": "synthesize the evidence we just pulled into themes", "expected": "synthesize"},
+    {"id": 5, "query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me", "expected": "anthropic-pm:synthesize-research", "note": "raw research outside our pipeline — must NOT trigger synthesize"},
+    {"id": 6, "query": "poke holes in our Q3 roadmap before the leadership review on friday", "expected": "pressure-test"},
+    {"id": 7, "query": "let's brainstorm some new directions for our analytics product, i want a sharp thinking partner", "expected": "anthropic-pm:product-brainstorming", "note": "generative — must NOT trigger pressure-test/critique"},
+    {"id": 8, "query": "update our Now/Next/Later roadmap — move the billing rework to Next and add the SSO epic to Now", "expected": "anthropic-pm:roadmap-update", "note": "roadmap edit — must NOT trigger prioritize-backlog"},
+    {"id": 9, "query": "write a PRD for the new CSV export feature so engineering can pick it up", "expected": "anthropic-pm:write-spec", "note": "engineering spec — must NOT trigger write-brief"},
+    {"id": 10, "query": "draft the opportunity brief for the notifications problem — both the narrative and the FAQ version", "expected": "write-brief"},
+    {"id": 11, "query": "grade how crisp this problem statement is: 'onboarding is bad'", "expected": "critique", "note": "crispness grader"},
+    {"id": 12, "query": "what data do I even have to make product decisions? scan my connectors and tell me the confidence ceiling", "expected": "discover-sources"},
+    {"id": 13, "query": "i want to build something in the observability tooling space but not sure what — find the real problems worth solving", "expected": "start", "note": "explore job"},
+    {"id": 14, "query": "turn the approved decision into a spec i can hand straight to claude code", "expected": "to-build-brief"},
+    {"id": 15, "query": "has our top opportunity drifted since last month? did confidence actually improve or are we spinning?", "expected": "drift-check"},
+    {"id": 16, "query": "the confidence numbers feel too generous — tune the thresholds against these 8 past launches we know the outcomes of", "expected": "calibrate"},
+    {"id": 17, "query": "give me a competitive brief on Linear vs Jira for our sales battlecard", "expected": "anthropic-pm:competitive-brief", "note": "must NOT trigger gather-evidence/pressure-test"},
+    {"id": 18, "query": "review our north-star and activation metrics for the month and flag what moved", "expected": "anthropic-pm:metrics-review", "note": "must NOT trigger drift-check"},
+    {"id": 19, "query": "write the weekly stakeholder update for leadership about the platform migration", "expected": "anthropic-pm:stakeholder-update", "note": "none of ours"},
+    {"id": 20, "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is", "expected": "gather-evidence"},
+    {"id": 21, "query": "decision-readiness says run a research sprint for SSO — design the cheapest test to close the gap", "expected": "design-test"},
+    {"id": 22, "query": "make a scorecard from the ranked opportunities in this product-eval scope", "expected": "scorecard"},
+    {"id": 23, "query": "write the decision memo for the SSO bet — options, metrics, falsifiable criteria, and the explicit ask", "expected": "write-brief"},
+    {"id": 24, "query": "what should we build next for activation if we have a csv of support tickets and some funnel data?", "expected": "start", "note": "Rank opportunities outcome with setup"},
+    {"id": 25, "query": "users keep dropping off somewhere in signup; turn that into a real problem statement", "expected": "synthesize", "note": "problem framing is now inside synthesize"},
+    {"id": 26, "query": "set up product-eval for my product", "expected": "start", "note": "first-run onboarding"},
+    {"id": 27, "query": "help me prepare a decision report and ask me what context you need first", "expected": "start", "note": "write outcome but missing source/audience setup"}
+  ]
+}

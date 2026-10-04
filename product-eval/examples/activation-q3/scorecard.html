@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Scorecard, activation-q3 (Pulse)</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --card:#ffffff; --ink:#15181d; --muted:#5b6471; --line:#e5e8ee;
+    --green:#16a34a; --green-bg:#e7f6ec; --amber:#c2780b; --amber-bg:#fdf3df;
+    --grey:#5b6471; --grey-bg:#eef0f4; --red:#dc2626; --red-bg:#fbe9e9;
+    --bar:#dfe3ea; --accent:#3b5bdb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 22px 60px}
+  header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
+  .brand{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:24px;margin:4px 0 2px}
+  .sub{color:var(--muted);font-size:14px}
+  .summary{margin:14px 0 22px;padding:12px 16px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;font-size:14.5px}
+  .summary b{font-weight:650}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:700;line-height:1.1}
+  .kpi .l{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .kpi .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:22px}
+  .panel h2{font-size:16px;margin:0 0 4px}
+  .panel .hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .quad-flex{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+  .legend{font-size:13px;min-width:190px}
+  .legend div{margin:6px 0;display:flex;align-items:center;gap:8px}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .toolbar span{font-size:13px;color:var(--muted);margin-right:2px}
+  .toolbar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);
+    color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+  .toolbar button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-left-width:5px;border-radius:10px;
+    padding:16px 18px;margin-bottom:14px}
+  .card .row1{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+  .card h3{font-size:17px;margin:0}
+  .verdict{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .bands{display:flex;flex-wrap:wrap;gap:18px;margin:12px 0 6px}
+  .band{min-width:150px;flex:1}
+  .band .lab{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+  .band .barwrap{height:8px;background:var(--bar);border-radius:6px;margin-top:4px;overflow:hidden}
+  .band .fill{height:100%;border-radius:6px}
+  .band .bandname{font-weight:650;font-size:13.5px}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin:8px 0 10px}
+  .meta b{color:var(--ink);font-weight:650}
+  blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);
+    background:#fafbfc;color:#2c313a;font-style:italic;border-radius:0 6px 6px 0;font-size:13.5px}
+  .pa{font-size:13.5px;margin:6px 0}
+  .pa .k{font-weight:650}
+  .why{font-size:13.5px;margin:10px 0 4px;padding:8px 12px;background:#f3f6ff;border-radius:7px}
+  .gaps{font-size:13px;color:var(--muted);margin-top:8px}
+  .gaps .k{font-weight:650;color:var(--ink)}
+  details.glossary{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 20px;margin-bottom:22px}
+  details.glossary summary{cursor:pointer;font-weight:650;padding:12px 0;font-size:15px}
+  details.glossary dl{margin:0 0 12px}
+  details.glossary dt{font-weight:650;margin-top:10px;font-size:13.5px}
+  details.glossary dd{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+  footer.honest{background:#10141b;color:#e7eaf0;border-radius:12px;padding:18px 20px;font-size:14px}
+  footer.honest b{color:#fff}
+  footer.honest .move{margin-top:8px;color:#aeb7c6}
+  .tag{font-size:11.5px;color:var(--muted)}
+  @media(max-width:560px){.bands{gap:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">product-eval &nbsp;/&nbsp; decision scorecard</div>
+      <h1>activation-q3</h1>
+      <div class="sub">Pulse, a B2B product-analytics workspace. North star: weekly activated workspaces. Generated 2026-06-29.</div>
+    </div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <h2>Value &times; Confidence</h2>
+    <p class="hint">Each opportunity is plotted by how big it could be (Value, vertical) against how sure we are it is real (Confidence, horizontal). The gate lines sit at 70. The top-right box is where a bet is both worth it and proven enough to commit.</p>
+    <div class="quad-flex">
+      <svg viewBox="0 0 480 380" width="480" height="380" role="img" aria-label="Value by Confidence quadrant">
+        <!-- quadrant tints -->
+        <rect x="337" y="16" width="79" height="97" fill="var(--green-bg)"></rect>
+        <rect x="46" y="16" width="291" height="97" fill="#fcfcfd"></rect>
+        <!-- axes -->
+        <line x1="46" y1="16" x2="46" y2="340" stroke="var(--line)"></line>
+        <line x1="46" y1="340" x2="464" y2="340" stroke="var(--line)"></line>
+        <!-- gate lines at 70 -->
+        <line x1="337" y1="16" x2="337" y2="340" stroke="#c8ccd6" stroke-dasharray="4 4"></line>
+        <line x1="46" y1="113" x2="464" y2="113" stroke="#c8ccd6" stroke-dasharray="4 4"></line>
+        <text x="341" y="30" font-size="10" fill="#9aa1ad">conf gate 70</text>
+        <text x="50" y="110" font-size="10" fill="#9aa1ad">value 70</text>
+        <!-- axis labels -->
+        <text x="255" y="366" font-size="12" fill="#5b6471" text-anchor="middle">Confidence &rarr;</text>
+        <text x="14" y="180" font-size="12" fill="#5b6471" text-anchor="middle" transform="rotate(-90 14 180)">Value &rarr;</text>
+        <text x="46" y="356" font-size="10" fill="#9aa1ad" text-anchor="middle">0</text>
+        <text x="464" y="356" font-size="10" fill="#9aa1ad" text-anchor="middle">100</text>
+        <!-- points -->
+        <g>
+          <circle cx="416" cy="107" r="8" fill="var(--green)"></circle>
+          <text x="416" y="96" font-size="11" fill="#15181d" text-anchor="middle" font-weight="700">T1</text>
+          <circle cx="308" cy="113" r="8" fill="var(--amber)"></circle>
+          <text x="304" y="102" font-size="11" fill="#15181d" text-anchor="end" font-weight="700">T2</text>
+          <circle cx="146" cy="146" r="8" fill="var(--grey)"></circle>
+          <text x="146" y="135" font-size="11" fill="#15181d" text-anchor="middle" font-weight="700">T3</text>
+          <circle cx="96" cy="227" r="8" fill="var(--red)"></circle>
+          <text x="96" y="216" font-size="11" fill="#15181d" text-anchor="middle" font-weight="700">T4</text>
+        </g>
+      </svg>
+      <div class="legend">
+        <div><span class="sw" style="background:var(--green)"></span> Decide now</div>
+        <div><span class="sw" style="background:var(--amber)"></span> Run a research sprint</div>
+        <div><span class="sw" style="background:var(--grey)"></span> Do not commit yet</div>
+        <div><span class="sw" style="background:var(--red)"></span> Deprioritize</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span>Sort by</span>
+    <button data-sort="tier" class="active">Recommendation</button>
+    <button data-sort="value">Value</button>
+    <button data-sort="confidence">Confidence</button>
+    <button data-sort="weight">Evidence weight</button>
+  </div>
+
+  <div id="cards"></div>
+
+  <details class="glossary">
+    <summary>How to read this</summary>
+    <dl>
+      <dt>Value (0 to 100)</dt>
+      <dd>If this problem is real, how big is it? Built from persona weight, funnel location, frequency, and competitive pressure (each 0 to 25). It is about potential impact, not certainty.</dd>
+      <dt>Confidence (0 to 100)</dt>
+      <dd>How sure are we the problem is real and worth acting on? Computed from total evidence weight, source-type diversity, and unresolved contradictions. Reported as a band (Low / Moderate / High); the number is for audit.</dd>
+      <dt>Evidence weight</dt>
+      <dd>Quality-weighted volume of evidence, deduplicated by account. Three strong first-party findings outweigh fifty vague mentions, so weight, not raw count, drives Confidence.</dd>
+      <dt>Accounts affected</dt>
+      <dd>Distinct accounts after identity resolution (one customer across Zendesk, CRM, and analytics counts once), so a single loud account is not mistaken for a widespread problem.</dd>
+      <dt>The recommendation tiers</dt>
+      <dd><b>Decide now</b>: worth building and well supported. <b>Run a research sprint</b>: high value but needs more proof, design the cheapest validating test. <b>Do not commit yet</b>: too unproven to act on. <b>Deprioritize</b>: prize too small to pursue.</dd>
+    </dl>
+  </details>
+
+  <footer class="honest" id="footer"></footer>
+</div>
+
+<script>
+const CEILING = "Decide-now reachable: first-party analytics, support tickets, and CRM are connected.";
+const DATA = [
+  {
+    id:"T1", tier:1, verdict:"Decide now", color:"green",
+    name:"New admins can't finish workspace setup without CS help",
+    value:72, valueBand:"High", confidence:89, confBand:"High",
+    weight:31, accounts:9, sources:4,
+    quote:"We almost gave up before your CS person walked us through the connectors.",
+    quoteSrc:"onboarding call, admin at Acme",
+    complaint:"38% of new workspaces never finish setup, dropping at the data-source connection step (up from 24% last quarter).",
+    ask:"Guided or auto-detected connector setup so an admin can finish without opening a ticket.",
+    why:"Ranks top-right: an activation cliff on the north-star path, corroborated across analytics, tickets, interviews, and churn. The score earns a commit.",
+    gaps:["Which connector is worst (Postgres vs Snowflake)?","Is the 38% inflated by trial spam?"]
+  },
+  {
+    id:"T2", tier:2, verdict:"Run a research sprint", color:"amber",
+    name:"Teams can't share saved views across the org",
+    value:70, valueBand:"High", confidence:63, confBand:"Moderate",
+    weight:14, accounts:6, sources:3,
+    quote:"Love it solo, but my team can't see my views.",
+    quoteSrc:"G2 review, end user",
+    complaint:"Views are per-user today, so teams rebuild the same view over and over; raised in two live deals.",
+    ask:"Org-shared saved views and dashboards a team can all see.",
+    why:"High value and competitors already solved it, but there is no first-party usage data on how often views get re-created. Validate before committing.",
+    gaps:["How many seats would actually share a view?","No first-party data on view re-creation."]
+  },
+  {
+    id:"T3", tier:3, verdict:"Do not commit yet", color:"grey",
+    name:"Alert noise pushes users to mute critical alerts",
+    value:60, valueBand:"Moderate", confidence:24, confBand:"Low",
+    weight:5, accounts:2, sources:2,
+    quote:"People just mute the whole channel, then miss the one that mattered.",
+    quoteSrc:"CS internal observation",
+    complaint:"Suspected that alert noise leads users to mute channels and miss critical alerts.",
+    ask:"Smarter alert grouping or quieter defaults so the signal survives.",
+    why:"Retention-relevant if true, but the core hypothesis is directly contradicted by first-party analytics (alert engagement is flat, not falling). Measure before acting.",
+    gaps:["No measured mute-rate.","Hypothesis (E8) directly contradicted by analytics (E12)."]
+  },
+  {
+    id:"T4", tier:4, verdict:"Deprioritize", color:"red",
+    name:"Users want a dark-mode dashboard",
+    value:35, valueBand:"Low", confidence:12, confBand:"Low",
+    weight:2, accounts:4, sources:2,
+    quote:"Would love a dark mode for late-night dashboards.",
+    quoteSrc:"Capterra review, end user",
+    complaint:"Scattered requests for a dark-mode theme, six over the past year.",
+    ask:"A dark-mode theme for the dashboard.",
+    why:"A secondary-persona, engagement-only preference with no competitive pressure. The prize is too small to pursue now, regardless of confidence.",
+    gaps:["No business-impact signal.","Low frequency, spread over 12 months."]
+  }
+];
+
+const C = {
+  green:{ink:"var(--green)",bg:"var(--green-bg)"},
+  amber:{ink:"var(--amber)",bg:"var(--amber-bg)"},
+  grey:{ink:"var(--grey)",bg:"var(--grey-bg)"},
+  red:{ink:"var(--red)",bg:"var(--red-bg)"}
+};
+
+function bandColor(band){return band==="High"?"var(--green)":band==="Moderate"?"var(--amber)":"var(--grey)";}
+
+function renderSummary(){
+  const n=DATA.length;
+  const by=t=>DATA.filter(d=>d.verdict===t).length;
+  document.getElementById("summary").innerHTML =
+    `<b>${n} opportunities</b>: ${by("Decide now")} Decide now, `+
+    `${by("Run a research sprint")} Run a research sprint, `+
+    `${by("Do not commit yet")} Do not commit yet, ${by("Deprioritize")} Deprioritize. `+
+    `Confidence ceiling: ${CEILING}`;
+}
+
+function renderKpis(){
+  const by=t=>DATA.filter(d=>d.verdict===t).length;
+  const cards=[
+    {n:DATA.length,l:"Opportunities",dot:null},
+    {n:by("Decide now"),l:"Decide now",dot:"var(--green)"},
+    {n:by("Run a research sprint"),l:"Research sprint",dot:"var(--amber)"},
+    {n:by("Do not commit yet"),l:"Do not commit yet",dot:"var(--grey)"},
+    {n:by("Deprioritize"),l:"Deprioritize",dot:"var(--red)"}
+  ];
+  document.getElementById("kpis").innerHTML = cards.map(c=>
+    `<div class="kpi"><div class="n">${c.n}</div><div class="l">${c.dot?`<span class="dot" style="background:${c.dot}"></span>`:""}${c.l}</div></div>`
+  ).join("");
+}
+
+function card(d){
+  const c=C[d.color];
+  return `<div class="card" style="border-left-color:${c.ink}">
+    <div class="row1">
+      <h3>${d.id}. ${d.name}</h3>
+      <span class="verdict" style="color:${c.ink};background:${c.bg}">${d.verdict}</span>
+    </div>
+    <div class="bands">
+      <div class="band">
+        <div class="lab"><span>Value</span><span class="bandname" style="color:${bandColor(d.valueBand)}">${d.valueBand}</span></div>
+        <div class="barwrap"><div class="fill" style="width:${d.value}%;background:${bandColor(d.valueBand)}"></div></div>
+        <div class="tag">audit: ${d.value}/100</div>
+      </div>
+      <div class="band">
+        <div class="lab"><span>Confidence</span><span class="bandname" style="color:${bandColor(d.confBand)}">${d.confBand}</span></div>
+        <div class="barwrap"><div class="fill" style="width:${d.confidence}%;background:${bandColor(d.confBand)}"></div></div>
+        <div class="tag">audit: ${d.confidence}/100</div>
+      </div>
+    </div>
+    <div class="meta">
+      <span><b>${d.weight}</b> evidence weight</span>
+      <span><b>${d.accounts}</b> accounts affected</span>
+      <span><b>${d.sources}</b> source types</span>
+    </div>
+    <blockquote>&ldquo;${d.quote}&rdquo; <span class="tag">(${d.quoteSrc})</span></blockquote>
+    <div class="pa"><span class="k">Top complaint:</span> ${d.complaint}</div>
+    <div class="pa"><span class="k">The ask:</span> ${d.ask}</div>
+    <div class="why"><b>Why it ranks here:</b> ${d.why}</div>
+    <div class="gaps"><span class="k">Open gaps:</span> ${d.gaps.join(" &middot; ")}</div>
+  </div>`;
+}
+
+let sortKey="tier";
+function renderCards(){
+  const arr=[...DATA].sort((a,b)=>{
+    if(sortKey==="tier") return a.tier-b.tier;
+    return b[sortKey]-a[sortKey];
+  });
+  document.getElementById("cards").innerHTML = arr.map(card).join("");
+}
+
+function renderFooter(){
+  const top=DATA.find(d=>d.tier===1)||DATA[0];
+  document.getElementById("footer").innerHTML =
+    `<b>Honest read.</b> Confidence ceiling: ${CEILING}<div class="move">`+
+    `Cheapest move to raise the top open item: instrument the connection step to break the 38% drop down by connector, which would convert T1's remaining gap into a measured fact and de-risk the build scope.</div>`;
+}
+
+document.querySelectorAll(".toolbar button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".toolbar button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    sortKey=b.dataset.sort;
+    renderCards();
+  });
+});
+
+renderSummary(); renderKpis(); renderCards(); renderFooter();
+</script>
+</body>
+</html>

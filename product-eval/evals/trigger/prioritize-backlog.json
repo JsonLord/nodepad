@@ -1,0 +1,23 @@
+[
+  {"query": "rank these 8 feature ideas by what's most worth doing, we have analytics and support data", "should_trigger": true},
+  {"query": "here's a list of 12 opportunities from our backlog, score them by value and confidence and tell me what to build", "should_trigger": true},
+  {"query": "prioritize my backlog for next quarter based on the evidence we've gathered", "should_trigger": true},
+  {"query": "i've got 15 problems competing for the same eng team, which ones are actually worth doing first", "should_trigger": true},
+  {"query": "score these opportunities and map each to a recommendation: build now, gather more, or drop", "should_trigger": true},
+  {"query": "we have evidence for some of these and basically nothing for others, rank them anyway and flag the low-confidence ones", "should_trigger": true},
+  {"query": "sequence these feature ideas by what's most worth doing given the data we have", "should_trigger": true},
+  {"query": "out of these 9 candidate bets, which should we tackle first, use value and confidence", "should_trigger": true},
+  {"query": "prioritize these: SSO, audit logs, SAML, bulk export, SCIM, rank by evidence-backed value", "should_trigger": true},
+  {"query": "what's the highest-leverage thing to build from this list of opportunities", "should_trigger": true},
+
+  {"query": "update our Now/Next/Later roadmap, move the billing rework to Next and add the SSO epic to Now", "should_trigger": false},
+  {"query": "reprioritize our roadmap, bump the mobile redesign up and push the API v2 work to later", "should_trigger": false},
+  {"query": "build me a Now / Next / Later roadmap view from scratch for the platform team", "should_trigger": false},
+  {"query": "the analytics dependency slipped two weeks, shift the roadmap timelines accordingly", "should_trigger": false},
+  {"query": "plan our next sprint, size the backlog against the team's capacity, we've got two people on PTO", "should_trigger": false},
+  {"query": "is it worth building SSO before our enterprise push? do we even have the data to call it?", "should_trigger": false},
+  {"query": "ok i've got ~200 intercom tickets exported and our amplitude funnel open, what should we actually build next quarter for onboarding", "should_trigger": false},
+  {"query": "review our north-star and activation metrics for the month and flag what moved", "should_trigger": false},
+  {"query": "write a PRD for the new CSV export feature so engineering can pick it up", "should_trigger": false},
+  {"query": "give me a competitive brief on Linear vs Jira for our sales battlecard", "should_trigger": false}
+]

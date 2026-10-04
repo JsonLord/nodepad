@@ -1,0 +1,19 @@
+{
+  "name": "product-eval",
+  "version": "0.14.2",
+  "description": "Evidence-gated product decisions that start by scoping product context, evidence sources, and the desired deliverable before ranking opportunities, deciding on bets, pressure-testing plans, or writing outputs. Keeps evidence gathering, problem framing, Value/Confidence scoring, readiness gates, and audit files behind a simpler user experience.",
+  "author": {
+    "name": "Narek Gevorgyan"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sparkline-ventures/product-eval",
+  "repository": "https://github.com/sparkline-ventures/product-eval",
+  "keywords": [
+    "product-management",
+    "prioritization",
+    "evidence",
+    "roadmap",
+    "decision-readiness",
+    "pressure-test"
+  ]
+}

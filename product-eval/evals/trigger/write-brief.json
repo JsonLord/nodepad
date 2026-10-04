@@ -1,0 +1,26 @@
+[
+  {"query": "draft the opportunity brief for the notifications problem, both the narrative and the FAQ version", "should_trigger": true},
+  {"query": "write the opportunity brief for the onboarding pain now that it passed the readiness gate", "should_trigger": true},
+  {"query": "draft the narrative version of the brief: problem, why now, impact, the ask", "should_trigger": true},
+  {"query": "write the FAQ version of the brief for the billing opportunity", "should_trigger": true},
+  {"query": "put together the human decision doc for leadership on the SSO opportunity", "should_trigger": true},
+  {"query": "we decided to move forward, write up the brief that explains the problem and what we're asking for", "should_trigger": true},
+  {"query": "turn this investigation into an opportunity brief i can circulate to the exec team", "should_trigger": true},
+  {"query": "write the brief: problem statement, why-now, expected impact, and the ask", "should_trigger": true},
+  {"query": "draft both versions of the opportunity brief for the churn problem, report and FAQ", "should_trigger": true},
+  {"query": "i need the opportunity brief for the analytics problem written up as a narrative for the team", "should_trigger": true},
+  {"query": "write the decision memo for the SSO bet, options, success/failure criteria, metrics scorecard, and an explicit ask for friday", "should_trigger": true},
+  {"query": "draft a recommendation memo on whether to build the in-app notifications center, weigh at least 3 options including do-nothing and recommend one", "should_trigger": true},
+  {"query": "i need an options memo for the onboarding rework: choices, tradeoffs, and what i'm asking the exec team to decide by july 15", "should_trigger": true},
+  {"query": "write the doc that forces a build-vs-buy call on the analytics pipeline, with options, what we'd measure, and a recommendation", "should_trigger": true},
+
+  {"query": "write a PRD for the new CSV export feature so engineering can pick it up", "should_trigger": false},
+  {"query": "turn this feature idea into a spec with goals, non-goals, and acceptance criteria for the eng team", "should_trigger": false},
+  {"query": "scope the bulk-export feature into a PRD with success metrics and phased milestones", "should_trigger": false},
+  {"query": "write the engineering spec for the new webhooks system so the devs can start", "should_trigger": false},
+  {"query": "turn the approved decision into a spec i can hand straight to claude code", "should_trigger": false},
+  {"query": "write the weekly stakeholder update for leadership about the platform migration", "should_trigger": false},
+  {"query": "give me a competitive brief on Linear vs Jira for our sales battlecard", "should_trigger": false},
+  {"query": "ok i've got ~200 intercom tickets exported and our amplitude funnel open, what should we actually build next quarter for onboarding", "should_trigger": false},
+  {"query": "review our north-star and activation metrics for the month and flag what moved", "should_trigger": false}
+]

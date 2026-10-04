@@ -1,0 +1,23 @@
+[
+  {"query": "poke holes in our Q3 roadmap before the leadership review on friday", "should_trigger": true},
+  {"query": "stress-test this bet before we commit the whole quarter to it", "should_trigger": true},
+  {"query": "pressure-test the PRD for the new billing system, where's it weak", "should_trigger": true},
+  {"query": "red-team our go-to-market plan for the enterprise launch", "should_trigger": true},
+  {"query": "challenge the assumptions baked into this roadmap, i think we're kidding ourselves", "should_trigger": true},
+  {"query": "before we greenlight building SSO, tear the plan apart and find the holes", "should_trigger": true},
+  {"query": "we're about to commit to the mobile rewrite, what are the hidden assumptions and scope risks", "should_trigger": true},
+  {"query": "give this plan a hard critic review, find the weak grounding before we ship it", "should_trigger": true},
+  {"query": "what could go wrong with this roadmap? surface the soft spots before we present it", "should_trigger": true},
+  {"query": "play devil's advocate on our Q4 plan, what are we not seeing", "should_trigger": true},
+
+  {"query": "let's brainstorm some new directions for our analytics product, i want a sharp thinking partner", "should_trigger": false},
+  {"query": "help me come up with fresh feature ideas for our onboarding flow, just spitball with me", "should_trigger": false},
+  {"query": "i want to explore the problem space around developer retention and generate some options", "should_trigger": false},
+  {"query": "be my thinking partner, let's ideate on what we could build next in the observability space", "should_trigger": false},
+  {"query": "grade how crisp this problem statement is: 'onboarding is bad'", "should_trigger": false},
+  {"query": "is it worth building SSO before our enterprise push? do we even have the data to call it?", "should_trigger": false},
+  {"query": "update our Now/Next/Later roadmap, move the billing rework to Next and add the SSO epic to Now", "should_trigger": false},
+  {"query": "write a PRD for the new CSV export feature so engineering can pick it up", "should_trigger": false},
+  {"query": "review our north-star and activation metrics for the month and flag what moved", "should_trigger": false},
+  {"query": "write the weekly stakeholder update for leadership about the platform migration", "should_trigger": false}
+]

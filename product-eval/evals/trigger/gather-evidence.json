@@ -1,0 +1,82 @@
+[
+  {
+    "query": "pull the recurring complaints from zendesk, our g2 reviews, and the churn survey and grade how solid each signal is",
+    "should_trigger": true
+  },
+  {
+    "query": "dig into the onboarding drop-off for me - go through intercom, amplitude, and our linear issues and tell me which findings actually hold up",
+    "should_trigger": true
+  },
+  {
+    "query": "collect data on the billing complaints across our support tickets and app store reviews, last 90 days",
+    "should_trigger": true
+  },
+  {
+    "query": "find signal for the slow-export problem - pull from wherever we have data and rate how strong each piece is",
+    "should_trigger": true
+  },
+  {
+    "query": "i exported ~150 intercom convos to a csv plus a g2 dump, parse them and turn them into evidence items with strengths",
+    "should_trigger": true
+  },
+  {
+    "query": "ok discover-sources is done, now actually go pull the tickets and analytics for the checkout friction area",
+    "should_trigger": true
+  },
+  {
+    "query": "scrape the recent reddit + community threads about our competitor and our own churn survey, normalize it and dedupe the same users across sources",
+    "should_trigger": true
+  },
+  {
+    "query": "we keep hearing notifications are noisy - go get me the actual receipts from pendo, the nps verbatims, and support, and tell me how much to trust each",
+    "should_trigger": true
+  },
+  {
+    "query": "pull every lost-deal reason from the crm and the support tickets tagged 'sso' and weight them into evidence cards",
+    "should_trigger": true
+  },
+  {
+    "query": "harvest signal on mobile crashes: error groups from datadog, app reviews, and the 40 support tickets, then strength-rate and resolve duplicate reporters",
+    "should_trigger": true
+  },
+  {
+    "query": "synthesize the evidence we just pulled into themes",
+    "should_trigger": false
+  },
+  {
+    "query": "what data do I even have to make product decisions? scan my connectors and tell me the confidence ceiling",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a pile of 30 user-interview transcripts in a folder, pull out the main themes and insights for me",
+    "should_trigger": false
+  },
+  {
+    "query": "cluster this into the main problems - what patterns pop out of the signal we already collected?",
+    "should_trigger": false
+  },
+  {
+    "query": "give me a competitive brief on Linear vs Jira for our sales battlecard",
+    "should_trigger": false
+  },
+  {
+    "query": "do a teardown of Notion vs us - where are we losing on features and what do I put on the sales one-pager?",
+    "should_trigger": false
+  },
+  {
+    "query": "review our north-star and activation metrics for the month and flag what moved",
+    "should_trigger": false
+  },
+  {
+    "query": "which of our connected sources actually have usable product data, and how high can confidence get given what's available?",
+    "should_trigger": false
+  },
+  {
+    "query": "is it worth building SSO before our enterprise push? do we even have the data to call it?",
+    "should_trigger": false
+  },
+  {
+    "query": "new churn data came in - reshuffle our Now/Next/Later and tell me what slips to make room for the retention work",
+    "should_trigger": false
+  }
+]

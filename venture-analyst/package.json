@@ -1,0 +1,33 @@
+{
+  "name": "@veyralabs/venture-analyst",
+  "version": "0.3.1",
+  "description": "Startup and SaaS idea validation skill for Claude Code",
+  "files": [
+    "SKILL.md",
+    "references/",
+    "scripts/",
+    "templates/"
+  ],
+  "keywords": [
+    "claude-code",
+    "claude-skill",
+    "agent-skill",
+    "startup-validation",
+    "market-research",
+    "idea-validation",
+    "lean-startup",
+    "mom-test",
+    "competitor-analysis",
+    "ai-agents"
+  ],
+  "author": "VeyraLabs <hello@veyralabs.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/veyralabsgroup/venture-analyst.git"
+  },
+  "bugs": {
+    "url": "https://github.com/veyralabsgroup/venture-analyst/issues"
+  },
+  "homepage": "https://github.com/veyralabsgroup/venture-analyst#readme"
+}
