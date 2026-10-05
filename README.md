@@ -1,5 +1,20 @@
 # nodepad
 
+> Nodepad is also a durable evidence-to-hypothesis operating system: one shared entity graph, many views, deterministic qualification, and an auditable developing brain.
+
+## Evidence brain quick start
+
+```bash
+npm install
+npm run dev
+npm run heartbeat -- default --once
+npm test
+```
+
+The classic localStorage experience and `.nodepad` import/export remain supported. Canonical server workspaces live in `NODEPAD_DATA_DIR` through a backend-neutral store. Status-bar controls run a heartbeat or backup, with text status in addition to icons/color.
+
+Configuration is in [`.env.example`](.env.example). Backup is opt-in and excludes credentials. Read the [data model](docs/DATA_MODEL.md), [synthesis registry](docs/SYNTHESIS_REGISTRY.md), [heartbeat](docs/HEARTBEAT.md), [backup/restore](docs/GITHUB_BACKUP.md), [brain export](docs/BRAIN_EXPORT.md), and [Agency Agents API](docs/AGENCY_AGENTS_INTEGRATION.md).
+
 **A design experiment in spatial, AI-augmented thinking.**
 
 [![Watch the intro](https://img.youtube.com/vi/jZu4sgZOOO4/maxresdefault.jpg)](https://www.youtube.com/watch?v=jZu4sgZOOO4)
