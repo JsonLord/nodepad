@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import { migrateNodepadFile } from "../lib/migration/legacy-nodepad"
+test("legacy .nodepad text and influencedBy relationships survive migration",()=>{const w=migrateNodepadFile({version:1,exportedAt:1,project:{id:"old",name:"Old",collapsedIds:[],ghostNotes:[],blocks:[{id:"a",text:"source",timestamp:1,contentType:"general"},{id:"b",text:"claim",timestamp:2,contentType:"claim",influencedBy:["a"]}]}});assert.deepEqual(w.nodes.map(n=>n.body),["source","claim"]);assert.equal(w.edges[0].type,"derived_from")})
