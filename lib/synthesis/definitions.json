@@ -1,0 +1,782 @@
+[
+  {
+    "id": "S001",
+    "category": "Evidence quality & epistemics",
+    "name": "Evidence Sufficiency",
+    "description": "determine whether the evidence set is sufficient to support any decision at all"
+  },
+  {
+    "id": "S002",
+    "category": "Evidence quality & epistemics",
+    "name": "Source Diversity",
+    "description": "identify overreliance on one source class/community/account"
+  },
+  {
+    "id": "S003",
+    "category": "Evidence quality & epistemics",
+    "name": "Evidence Freshness",
+    "description": "identify strategically important stale evidence"
+  },
+  {
+    "id": "S004",
+    "category": "Evidence quality & epistemics",
+    "name": "Contradiction Map",
+    "description": "surface direct and indirect contradictions across sources"
+  },
+  {
+    "id": "S005",
+    "category": "Evidence quality & epistemics",
+    "name": "Corroboration Map",
+    "description": "identify independently corroborated claims"
+  },
+  {
+    "id": "S006",
+    "category": "Evidence quality & epistemics",
+    "name": "Evidence Blind Spots",
+    "description": "identify missing evidence classes needed for confidence"
+  },
+  {
+    "id": "S007",
+    "category": "Evidence quality & epistemics",
+    "name": "Anecdote-vs-Behavior Gap",
+    "description": "contrast stated complaints/opinions with observed behavior"
+  },
+  {
+    "id": "S008",
+    "category": "Evidence quality & epistemics",
+    "name": "First-Party Evidence Gap",
+    "description": "identify claims based only on public/secondary evidence"
+  },
+  {
+    "id": "S009",
+    "category": "Evidence quality & epistemics",
+    "name": "Source Bias Hypothesis",
+    "description": "infer how source selection may distort the apparent conclusion"
+  },
+  {
+    "id": "S010",
+    "category": "Evidence quality & epistemics",
+    "name": "Confidence Ceiling",
+    "description": "state the highest defensible confidence possible from current evidence"
+  },
+  {
+    "id": "S011",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Problem Cluster",
+    "description": "cluster evidence into underlying problems rather than topics"
+  },
+  {
+    "id": "S012",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Root Cause Candidate",
+    "description": "derive plausible root causes for a repeated pain"
+  },
+  {
+    "id": "S013",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Pain Intensity",
+    "description": "infer severity and cost of the problem"
+  },
+  {
+    "id": "S014",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Pain Frequency",
+    "description": "infer how often the problem occurs"
+  },
+  {
+    "id": "S015",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Pain Urgency",
+    "description": "infer forcing functions and time sensitivity"
+  },
+  {
+    "id": "S016",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Segment Split",
+    "description": "identify customer segments experiencing meaningfully different versions of the problem"
+  },
+  {
+    "id": "S017",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Persona Role Map",
+    "description": "distinguish user, buyer, champion, blocker and administrator"
+  },
+  {
+    "id": "S018",
+    "category": "Customer, segment & problem synthesis",
+    "name": "High-Pain Segment",
+    "description": "identify the segment with highest evidenced severity/frequency"
+  },
+  {
+    "id": "S019",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Problem Context",
+    "description": "identify contexts/triggers in which the problem becomes salient"
+  },
+  {
+    "id": "S020",
+    "category": "Customer, segment & problem synthesis",
+    "name": "Problem Consequence Chain",
+    "description": "map pain \u2192 operational effect \u2192 business effect \u2192 emotional/social effect"
+  },
+  {
+    "id": "S021",
+    "category": "Jobs, behavior & adoption",
+    "name": "JTBD Statement",
+    "description": "derive job-to-be-done candidates from evidence"
+  },
+  {
+    "id": "S022",
+    "category": "Jobs, behavior & adoption",
+    "name": "Current Workflow",
+    "description": "reconstruct how users solve the job today"
+  },
+  {
+    "id": "S023",
+    "category": "Jobs, behavior & adoption",
+    "name": "Workaround Map",
+    "description": "classify manual, software, service, spreadsheet, social and non-consumption workarounds"
+  },
+  {
+    "id": "S024",
+    "category": "Jobs, behavior & adoption",
+    "name": "Non-Consumption Reason",
+    "description": "explain why users do nothing despite a stated pain"
+  },
+  {
+    "id": "S025",
+    "category": "Jobs, behavior & adoption",
+    "name": "Switching Cost",
+    "description": "identify procedural, data, social, contractual and cognitive switching costs"
+  },
+  {
+    "id": "S026",
+    "category": "Jobs, behavior & adoption",
+    "name": "Behavior Change Burden",
+    "description": "estimate how much new behavior adoption requires"
+  },
+  {
+    "id": "S027",
+    "category": "Jobs, behavior & adoption",
+    "name": "Trigger-to-Action Chain",
+    "description": "identify what event causes a user to seek a solution"
+  },
+  {
+    "id": "S028",
+    "category": "Jobs, behavior & adoption",
+    "name": "Habit/Retention Driver",
+    "description": "identify repeated triggers/rewards that could sustain use"
+  },
+  {
+    "id": "S029",
+    "category": "Jobs, behavior & adoption",
+    "name": "Adoption Blocker",
+    "description": "identify friction preventing trial or continued use"
+  },
+  {
+    "id": "S030",
+    "category": "Jobs, behavior & adoption",
+    "name": "Abandonment Hypothesis",
+    "description": "explain why users may stop using an existing/imagined solution"
+  },
+  {
+    "id": "S031",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Core Value Proposition",
+    "description": "derive the most evidence-supported promise"
+  },
+  {
+    "id": "S032",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Avoided-Loss Proposition",
+    "description": "frame value as cost/risk/delay avoided"
+  },
+  {
+    "id": "S033",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Gain Proposition",
+    "description": "frame value as measurable upside achieved"
+  },
+  {
+    "id": "S034",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Emotional Value Proposition",
+    "description": "identify confidence/status/stress/reassurance value"
+  },
+  {
+    "id": "S035",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Persona-Specific Proposition",
+    "description": "adapt proposition by user/buyer/champion role"
+  },
+  {
+    "id": "S036",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Positioning Statement",
+    "description": "derive category, audience, alternative and differentiated value"
+  },
+  {
+    "id": "S037",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Category Hypothesis",
+    "description": "infer which category framing makes the product easiest to understand/buy"
+  },
+  {
+    "id": "S038",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Differentiation Hypothesis",
+    "description": "identify differences customers appear to value, not just product differences"
+  },
+  {
+    "id": "S039",
+    "category": "Value proposition, positioning & messaging",
+    "name": "Headline Hypotheses",
+    "description": "generate testable landing-page headline variants grounded in customer language"
+  },
+  {
+    "id": "S040",
+    "category": "Value proposition, positioning & messaging",
+    "name": "CTA Hypotheses",
+    "description": "derive calls-to-action appropriate to evidence/readiness and customer intent"
+  },
+  {
+    "id": "S041",
+    "category": "Product, feature & solution synthesis",
+    "name": "Feature Opportunity",
+    "description": "derive features directly from evidenced problems"
+  },
+  {
+    "id": "S042",
+    "category": "Product, feature & solution synthesis",
+    "name": "Feature Anti-Opportunity",
+    "description": "identify requested features not justified by evidence"
+  },
+  {
+    "id": "S043",
+    "category": "Product, feature & solution synthesis",
+    "name": "Minimum Valuable Experience",
+    "description": "derive the smallest experience that could deliver the core outcome"
+  },
+  {
+    "id": "S044",
+    "category": "Product, feature & solution synthesis",
+    "name": "Concierge Version",
+    "description": "identify what can be manually delivered before software exists"
+  },
+  {
+    "id": "S045",
+    "category": "Product, feature & solution synthesis",
+    "name": "Wizard-of-Oz Version",
+    "description": "identify which automated-looking behavior can safely be fulfilled manually for testing"
+  },
+  {
+    "id": "S046",
+    "category": "Product, feature & solution synthesis",
+    "name": "Fake-Door Concept",
+    "description": "derive the smallest credible demand probe"
+  },
+  {
+    "id": "S047",
+    "category": "Product, feature & solution synthesis",
+    "name": "Workflow Integration Point",
+    "description": "identify where in the customer's current workflow the product should enter"
+  },
+  {
+    "id": "S048",
+    "category": "Product, feature & solution synthesis",
+    "name": "Product Boundary",
+    "description": "define what the product should explicitly not attempt to solve"
+  },
+  {
+    "id": "S049",
+    "category": "Product, feature & solution synthesis",
+    "name": "Feature Dependency Graph",
+    "description": "derive feature prerequisites and dependent outcomes"
+  },
+  {
+    "id": "S050",
+    "category": "Product, feature & solution synthesis",
+    "name": "Solution Alternative Set",
+    "description": "generate materially different solution approaches to the same problem"
+  },
+  {
+    "id": "S051",
+    "category": "Pricing, monetization & economics",
+    "name": "Willingness-to-Pay Hypothesis",
+    "description": "infer testable WTP ranges and confidence"
+  },
+  {
+    "id": "S052",
+    "category": "Pricing, monetization & economics",
+    "name": "Pricing Metric Hypothesis",
+    "description": "seat, usage, project, outcome, asset, account, device, etc"
+  },
+  {
+    "id": "S053",
+    "category": "Pricing, monetization & economics",
+    "name": "Packaging Hypothesis",
+    "description": "identify coherent bundles/tier boundaries"
+  },
+  {
+    "id": "S054",
+    "category": "Pricing, monetization & economics",
+    "name": "Freemium Suitability",
+    "description": "reason whether free usage creates conversion/distribution value or cost leakage"
+  },
+  {
+    "id": "S055",
+    "category": "Pricing, monetization & economics",
+    "name": "Trial Design Hypothesis",
+    "description": "infer what a trial must expose to demonstrate value"
+  },
+  {
+    "id": "S056",
+    "category": "Pricing, monetization & economics",
+    "name": "Cost-to-Serve Risk",
+    "description": "infer expensive workflows or human/service burden"
+  },
+  {
+    "id": "S057",
+    "category": "Pricing, monetization & economics",
+    "name": "Gross-Margin Hypothesis",
+    "description": "estimate major margin drivers needing validation"
+  },
+  {
+    "id": "S058",
+    "category": "Pricing, monetization & economics",
+    "name": "CAC Ceiling Hypothesis",
+    "description": "derive maximum tolerable acquisition cost from current economics"
+  },
+  {
+    "id": "S059",
+    "category": "Pricing, monetization & economics",
+    "name": "LTV Driver Hypothesis",
+    "description": "identify behaviors and business variables most likely to drive lifetime value"
+  },
+  {
+    "id": "S060",
+    "category": "Pricing, monetization & economics",
+    "name": "Monetization Failure Mode",
+    "description": "identify reasons real demand may fail to become revenue"
+  },
+  {
+    "id": "S061",
+    "category": "Competition, alternatives & market structure",
+    "name": "Direct Competitor Map",
+    "description": "synthesize direct competitors and key evidence"
+  },
+  {
+    "id": "S062",
+    "category": "Competition, alternatives & market structure",
+    "name": "Indirect Competitor Map",
+    "description": "synthesize adjacent products solving the same job differently"
+  },
+  {
+    "id": "S063",
+    "category": "Competition, alternatives & market structure",
+    "name": "Substitute Map",
+    "description": "spreadsheets, services, internal processes, community, doing nothing"
+  },
+  {
+    "id": "S064",
+    "category": "Competition, alternatives & market structure",
+    "name": "Competitor Complaint Cluster",
+    "description": "aggregate repeated negative review/problem themes"
+  },
+  {
+    "id": "S065",
+    "category": "Competition, alternatives & market structure",
+    "name": "Competitor Strength Cluster",
+    "description": "identify incumbent strengths users value and should not be ignored"
+  },
+  {
+    "id": "S066",
+    "category": "Competition, alternatives & market structure",
+    "name": "Positioning Gap",
+    "description": "infer underserved combinations of audience/problem/experience/price/trust"
+  },
+  {
+    "id": "S067",
+    "category": "Competition, alternatives & market structure",
+    "name": "Incumbent Indifference",
+    "description": "identify opportunities too small/awkward for incumbents to prioritize"
+  },
+  {
+    "id": "S068",
+    "category": "Competition, alternatives & market structure",
+    "name": "Incumbent Response Risk",
+    "description": "estimate how easily an incumbent could neutralize the differentiation"
+  },
+  {
+    "id": "S069",
+    "category": "Competition, alternatives & market structure",
+    "name": "Market Saturation Hypothesis",
+    "description": "infer whether competition indicates demand, commoditization or over-supply"
+  },
+  {
+    "id": "S070",
+    "category": "Competition, alternatives & market structure",
+    "name": "Precedent Failure Lesson",
+    "description": "extract lessons from similar products/startups that failed or shut down"
+  },
+  {
+    "id": "S071",
+    "category": "Distribution, channel & growth",
+    "name": "Channel Fit",
+    "description": "rank channels by evidence quality and reachability"
+  },
+  {
+    "id": "S072",
+    "category": "Distribution, channel & growth",
+    "name": "Evidence-Per-Euro Channel",
+    "description": "rank channels specifically by validation signal per cost, not scale"
+  },
+  {
+    "id": "S073",
+    "category": "Distribution, channel & growth",
+    "name": "Community Fit",
+    "description": "identify communities in which the problem naturally appears"
+  },
+  {
+    "id": "S074",
+    "category": "Distribution, channel & growth",
+    "name": "Search Intent",
+    "description": "infer search queries and intent stages indicating active demand"
+  },
+  {
+    "id": "S075",
+    "category": "Distribution, channel & growth",
+    "name": "Content Angle",
+    "description": "derive content topics likely to produce useful validation signals"
+  },
+  {
+    "id": "S076",
+    "category": "Distribution, channel & growth",
+    "name": "Outreach Angle",
+    "description": "derive conversation openers based on evidenced pains rather than sales copy"
+  },
+  {
+    "id": "S077",
+    "category": "Distribution, channel & growth",
+    "name": "Referral Loop Hypothesis",
+    "description": "identify whether use naturally exposes/invites others"
+  },
+  {
+    "id": "S078",
+    "category": "Distribution, channel & growth",
+    "name": "Virality Constraint",
+    "description": "identify what prevents organic sharing or collaboration loops"
+  },
+  {
+    "id": "S079",
+    "category": "Distribution, channel & growth",
+    "name": "Distribution Edge",
+    "description": "identify founder/company assets that reduce acquisition difficulty"
+  },
+  {
+    "id": "S080",
+    "category": "Distribution, channel & growth",
+    "name": "Channel Failure Mode",
+    "description": "identify why an apparently attractive channel may not produce qualified users"
+  },
+  {
+    "id": "S081",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Trust Barrier",
+    "description": "derive why customers may not trust the solution/provider"
+  },
+  {
+    "id": "S082",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Proof Requirement",
+    "description": "identify proof, certification, demo or social validation needed for adoption"
+  },
+  {
+    "id": "S083",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Privacy Concern",
+    "description": "synthesize data/privacy objections"
+  },
+  {
+    "id": "S084",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Security Concern",
+    "description": "synthesize security objections and required assurances"
+  },
+  {
+    "id": "S085",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Regulatory Constraint",
+    "description": "identify regulation/licensing/compliance hypotheses requiring validation"
+  },
+  {
+    "id": "S086",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Platform Dependency Risk",
+    "description": "detect dependency on APIs/platforms/providers that could invalidate the model"
+  },
+  {
+    "id": "S087",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Technical Feasibility Risk",
+    "description": "identify evidence gaps around whether the solution can actually work"
+  },
+  {
+    "id": "S088",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Operational Feasibility Risk",
+    "description": "identify human/process scaling constraints"
+  },
+  {
+    "id": "S089",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Reputation Risk",
+    "description": "identify trust/reputation failure paths from the proposed behavior"
+  },
+  {
+    "id": "S090",
+    "category": "Trust, risk, regulatory & feasibility",
+    "name": "Abuse/Fraud Risk",
+    "description": "derive foreseeable misuse/fraud incentives that affect product viability"
+  },
+  {
+    "id": "S091",
+    "category": "Research & experiment design",
+    "name": "Riskiest Assumption",
+    "description": "select the highest-impact/highest-uncertainty load-bearing assumption"
+  },
+  {
+    "id": "S092",
+    "category": "Research & experiment design",
+    "name": "Cheapest Disconfirming Test",
+    "description": "identify the cheapest test capable of proving the hypothesis wrong"
+  },
+  {
+    "id": "S093",
+    "category": "Research & experiment design",
+    "name": "Interview Test",
+    "description": "derive Mom-Test-style questions that avoid pitching and leading"
+  },
+  {
+    "id": "S094",
+    "category": "Research & experiment design",
+    "name": "Fake-Door Test",
+    "description": "derive audience, message, instrumentation and pass/fail threshold"
+  },
+  {
+    "id": "S095",
+    "category": "Research & experiment design",
+    "name": "Pricing Test",
+    "description": "derive behavioral pricing experiment and threshold"
+  },
+  {
+    "id": "S096",
+    "category": "Research & experiment design",
+    "name": "Concierge Test",
+    "description": "derive manual test, sample, duration and success/failure threshold"
+  },
+  {
+    "id": "S097",
+    "category": "Research & experiment design",
+    "name": "Instrumentation Gap",
+    "description": "identify what product analytics/event tracking is needed to answer a hypothesis"
+  },
+  {
+    "id": "S098",
+    "category": "Research & experiment design",
+    "name": "Source Acquisition Plan",
+    "description": "identify which evidence sources can most efficiently close the gap"
+  },
+  {
+    "id": "S099",
+    "category": "Research & experiment design",
+    "name": "Discriminating Experiment",
+    "description": "design a test that differentiates between two competing hypotheses"
+  },
+  {
+    "id": "S100",
+    "category": "Research & experiment design",
+    "name": "Replication Test",
+    "description": "design an independent repeat/segment/source test for an apparently strong result"
+  },
+  {
+    "id": "S101",
+    "category": "Reporting, narrative & communication",
+    "name": "Executive Focus Points",
+    "description": "identify what a decision-maker report should emphasize"
+  },
+  {
+    "id": "S102",
+    "category": "Reporting, narrative & communication",
+    "name": "Evidence Narrative",
+    "description": "turn evidence into a chronological/causal story without overstating certainty"
+  },
+  {
+    "id": "S103",
+    "category": "Reporting, narrative & communication",
+    "name": "Customer Voice Summary",
+    "description": "summarize recurring language, preserving provenance"
+  },
+  {
+    "id": "S104",
+    "category": "Reporting, narrative & communication",
+    "name": "Key Quotes/Examples Selection",
+    "description": "choose representative examples without cherry-picking"
+  },
+  {
+    "id": "S105",
+    "category": "Reporting, narrative & communication",
+    "name": "Decision Memo Focus",
+    "description": "identify the facts that should determine build/test/pivot/kill decisions"
+  },
+  {
+    "id": "S106",
+    "category": "Reporting, narrative & communication",
+    "name": "Investor Narrative Focus",
+    "description": "derive market/problem/proof/risk points relevant to an investor audience"
+  },
+  {
+    "id": "S107",
+    "category": "Reporting, narrative & communication",
+    "name": "Sales Narrative Focus",
+    "description": "derive pain/proof/outcome points relevant to buyer conversations"
+  },
+  {
+    "id": "S108",
+    "category": "Reporting, narrative & communication",
+    "name": "Research Report Focus",
+    "description": "identify strongest findings, caveats and next questions"
+  },
+  {
+    "id": "S109",
+    "category": "Reporting, narrative & communication",
+    "name": "Dashboard KPI Focus",
+    "description": "derive which metrics should be monitored because they resolve current hypotheses"
+  },
+  {
+    "id": "S110",
+    "category": "Reporting, narrative & communication",
+    "name": "Unknowns Disclosure",
+    "description": "produce the explicit \u201cwhat we still do not know\u201d section for any report"
+  },
+  {
+    "id": "S111",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Build/Test/Pivot/Kill Recommendation",
+    "description": "deterministic/structured decision backed by evidence state"
+  },
+  {
+    "id": "S112",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Pivot Candidate",
+    "description": "generate a one- or two-variable pivot preserving strong dimensions"
+  },
+  {
+    "id": "S113",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Kill Criterion",
+    "description": "define evidence that should terminate the idea/hypothesis"
+  },
+  {
+    "id": "S114",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Scale Criterion",
+    "description": "define evidence required before allocating more resources"
+  },
+  {
+    "id": "S115",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Venture Mode Fit",
+    "description": "infer solo/indie/B2B/venture-scale operating assumptions and mismatches"
+  },
+  {
+    "id": "S116",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Resource Fit",
+    "description": "map founder/team assets and constraints to the opportunity"
+  },
+  {
+    "id": "S117",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Portfolio Priority",
+    "description": "rank multiple hypotheses/ventures by evidence, upside, cost and uncertainty"
+  },
+  {
+    "id": "S118",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Expected Learning Value",
+    "description": "rank actions by expected decision information generated per unit cost/time"
+  },
+  {
+    "id": "S119",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Strategic Dependency",
+    "description": "identify hypotheses that gate many downstream decisions"
+  },
+  {
+    "id": "S120",
+    "category": "Strategy, portfolio & decision synthesis",
+    "name": "Opportunity Cost",
+    "description": "identify what pursuing this option prevents or delays elsewhere"
+  },
+  {
+    "id": "S121",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Cross-Cluster Bridge",
+    "description": "find non-obvious connections between evidence clusters (Nodepad Ghost-style)"
+  },
+  {
+    "id": "S122",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Second-Order Hypothesis",
+    "description": "derive what follows if a first-order hypothesis is true"
+  },
+  {
+    "id": "S123",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Third-Order Business Consequence",
+    "description": "derive downstream business implications of a supported second-order effect"
+  },
+  {
+    "id": "S124",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Alternative Explanation",
+    "description": "generate plausible explanations for the same observation"
+  },
+  {
+    "id": "S125",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Hidden Common Cause",
+    "description": "infer a latent cause that could explain multiple problems at once"
+  },
+  {
+    "id": "S126",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Tension/Paradox",
+    "description": "surface evidence pairs that appear true but pull strategy in opposite directions"
+  },
+  {
+    "id": "S127",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Adjacent Opportunity",
+    "description": "infer an adjacent product/service opportunity from existing pain/evidence"
+  },
+  {
+    "id": "S128",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "New Venture Candidate",
+    "description": "identify when multiple evidence clusters imply a distinct venture rather than a feature"
+  },
+  {
+    "id": "S129",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "Weak-Signal Emergence",
+    "description": "identify low-volume but fast-growing or strategically novel signals"
+  },
+  {
+    "id": "S130",
+    "category": "Emergent / second-order / graph-native synthesis",
+    "name": "World-Model Update",
+    "description": "synthesize the most important change to the current \u201cbrain\u201d caused by new evidence"
+  }
+]
