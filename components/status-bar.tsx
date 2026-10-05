@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { CONTENT_TYPE_CONFIG } from "@/lib/content-types"
 import type { TextBlock } from "@/components/tile-card"
 import { AboutPanel } from "@/components/about-panel"
+import { BrainStatus } from "@/components/brain-status"
 
 import { Menu, LayoutList, Sparkles } from "lucide-react"
 
@@ -12,6 +13,7 @@ interface StatusBarProps {
   blockCount: number
   blocks: TextBlock[]
   activeProjectName: string
+  activeProjectId: string
   isSidebarOpen: boolean
   isIndexOpen: boolean
   isGhostPanelOpen: boolean
@@ -28,6 +30,7 @@ export function StatusBar({
   blockCount,
   blocks,
   activeProjectName,
+  activeProjectId,
   isSidebarOpen,
   isIndexOpen,
   isGhostPanelOpen,
@@ -105,6 +108,7 @@ export function StatusBar({
       </div>
 
       <div className="flex items-center gap-4">
+        {activeProjectId && <BrainStatus workspaceId={activeProjectId} />}
         {blockCount > 0 && (
           <div className="flex items-center gap-4">
             <span className="font-mono text-[9px] text-muted-foreground/40 font-bold uppercase tracking-wider">
@@ -234,4 +238,3 @@ export function StatusBar({
     </header>
   )
 }
-
