@@ -1,3 +1,9 @@
+---
+title: Nodepad Hypotheses
+sdk: docker
+app_port: 7860
+---
+
 # nodepad
 
 > Nodepad is also a durable evidence-to-hypothesis operating system: one shared entity graph, many views, deterministic qualification, and an auditable developing brain.
