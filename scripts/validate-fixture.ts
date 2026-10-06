@@ -1,0 +1,10 @@
+import assert from "node:assert/strict"
+import { fixture, evidence, hypothesis } from "../tests/helpers"
+import { runSynthesis } from "../lib/synthesis/runner"
+import { scoreHypothesis } from "../lib/scoring/hypothesis"
+import { updateBrain, exportBrain } from "../lib/brain/export"
+import { restoreSerialized, serializeWorkspace, snapshotContainsSecrets } from "../lib/github-sync/serialization"
+async function main(){const w=fixture();w.evidence=[evidence("support-1","support","interview")];await runSynthesis(w,"S011","fixture-run");let h=scoreHypothesis(hypothesis(),[],Date.parse("2026-10-04"));const initial=h.qualification;h={...h,supportingEvidence:["support-1"]};h=scoreHypothesis(h,w.evidence,Date.parse("2026-10-04"));w.evidence.push(evidence("support-2","support","analytics"));h={...h,supportingEvidence:["support-1","support-2"]};h=scoreHypothesis(h,w.evidence,Date.parse("2026-10-04"));w.hypotheses=[h];updateBrain(w,"promote");const promoted=h.qualification;w.researchResults.push({id:"result-1",taskId:"task-1",providerId:"fixture",title:"Failed behavioral test",excerpt:"No user completed the workflow",retrievedAt:"2026-10-04T00:00:00.000Z"});w.evidence.push(evidence("contra-1","contradict","experiment"),evidence("contra-2","contradict","usage"),evidence("contra-3","contradict","sales"),evidence("contra-4","contradict","support"));h={...h,contradictingEvidence:["contra-1","contra-2","contra-3","contra-4"]};w.hypotheses=[scoreHypothesis(h,w.evidence,Date.parse("2026-10-04"))];updateBrain(w,"demote");const brain=exportBrain(w),snapshot=serializeWorkspace(w),restored=restoreSerialized(snapshot);assert.equal(snapshotContainsSecrets(snapshot),false);assert.deepEqual(serializeWorkspace(restored).files,snapshot.files);assert.ok(brain.archive.some(x=>x.id==="h1"));console.log(JSON.stringify({path:[initial,promoted,w.hypotheses[0].qualification],synthesis:w.syntheses[0].id,brain:brain.manifest.counts,roundTripFiles:Object.keys(snapshot.files).length,secrets:false},null,2))
+
+}
+void main()
