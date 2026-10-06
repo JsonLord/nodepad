@@ -1,4 +1,5 @@
 import { isIP } from "node:net"
+import { lookup } from "node:dns/promises"
 import { NextRequest, NextResponse } from "next/server"
 
 type UrlMeta = {
@@ -42,14 +43,22 @@ async function fetchUrlMeta(url: string): Promise<UrlMeta | null> {
     const timer = setTimeout(() => controller.abort(), 6000)
     let res: Response
     try {
-      res = await fetch(url, {
+      let current = url
+      for (let redirects = 0; ; redirects++) {
+        if (await isBlockedResolvedUrl(current)) throw new Error("blocked URL")
+        res = await fetch(current, {
         signal: controller.signal,
         headers: {
           "User-Agent": "nodepad/1.0 (+https://nodepad.space)",
           "Accept": "text/html,application/xhtml+xml",
         },
-        redirect: "follow",
+        redirect: "manual",
       })
+        if (![301,302,303,307,308].includes(res.status)) break
+        if (redirects >= 3) throw new Error("too many redirects")
+        const location = res.headers.get("location"); if (!location) break
+        current = new URL(location, current).toString()
+      }
     } finally {
       clearTimeout(timer)
     }
@@ -63,7 +72,8 @@ async function fetchUrlMeta(url: string): Promise<UrlMeta | null> {
       return { title: "", description: `Non-HTML resource: ${kind}`, excerpt: "", statusCode }
     }
 
-    const html = await res.text()
+    if (Number(res.headers.get("content-length") ?? 0) > 2_000_000) return null
+    const html = (await res.text()).slice(0, 2_000_000)
     return { ...extractMeta(html), statusCode }
   } catch {
     return null
@@ -74,7 +84,7 @@ async function fetchUrlMeta(url: string): Promise<UrlMeta | null> {
 // Blocks requests to private/reserved IP ranges and special hostnames so this
 // endpoint cannot be used to probe internal networks or cloud metadata services.
 
-function isBlockedHost(rawUrl: string): boolean {
+export function isBlockedHost(rawUrl: string): boolean {
   let parsed: URL
   try {
     parsed = new URL(rawUrl)
@@ -115,8 +125,18 @@ function isBlockedHost(rawUrl: string): boolean {
   return false
 }
 
+async function isBlockedResolvedUrl(rawUrl: string) {
+  if (isBlockedHost(rawUrl)) return true
+  try {
+    const hostname = new URL(rawUrl).hostname
+    const addresses = await lookup(hostname, { all: true })
+    return addresses.some(({ address }) => isBlockedHost(`http://${address.includes(":") ? `[${address}]` : address}`))
+  } catch { return true }
+}
+
 export async function POST(req: NextRequest) {
   try {
+    if (Number(req.headers.get("content-length") ?? 0) > 16_384) return NextResponse.json({ error: "Request too large" }, { status: 413 })
     const { url } = await req.json()
     const urlStr = String(url ?? "")
 

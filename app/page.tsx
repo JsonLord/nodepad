@@ -923,6 +923,7 @@ export default function Page() {
           isGhostPanelOpen={isGhostPanelOpen}
           ghostNoteCount={ghostNotes.filter(n => !n.isGenerating).length}
           activeProjectName={activeProject?.name || ""}
+          activeProjectId={activeProjectId || "default"}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           onIndexToggle={() => setIsIndexOpen(!isIndexOpen)}
           onGhostPanelToggle={() => setIsGhostPanelOpen(prev => !prev)}
@@ -994,6 +995,10 @@ export default function Page() {
                   onToggleSubTask={handleToggleSubTask}
                   onDeleteSubTask={handleDeleteSubTask}
                   collapsedIds={new Set(activeProject.collapsedIds)}
+                  workspaces={workspaceOptions}
+                  activeWorkspaceId={activeProjectId}
+                  onMoveToWorkspace={moveBlockToWorkspace}
+                  onCopyToWorkspace={copyBlockToWorkspace}
                 />
               ) : (
                 <GraphArea
@@ -1008,10 +1013,6 @@ export default function Page() {
                   onEditAnnotation={editAnnotation}
                   highlightedBlockId={highlightedBlockId}
                   onHighlight={setHighlightedBlockId}
-                  workspaces={workspaceOptions}
-                  activeWorkspaceId={activeProjectId}
-                  onMoveToWorkspace={moveBlockToWorkspace}
-                  onCopyToWorkspace={copyBlockToWorkspace}
                 />
               )
             ) : (
