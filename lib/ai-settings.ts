@@ -12,7 +12,7 @@ export interface AIModel {
   groundingModelId?: string
 }
 
-export type AIProvider = "openrouter" | "openai" | "zai"
+export type AIProvider = "openrouter" | "openai" | "zai" | "openai-compatible"
 
 export interface AIProviderPreset {
   id: AIProvider
@@ -269,31 +269,55 @@ export interface AIConfig {
 
 export function loadAIConfig(): AIConfig | null {
   const s = loadSettings()
-  if (!s.apiKey) return null
-  const models = getModelsForProvider(s.provider)
-  const model = models.find(m => m.id === s.modelId)
-  // Use the matched model's id if found; otherwise fall back to the first model
-  // for this provider.  This handles the case where localStorage still holds an
-  // OpenRouter-prefixed id (e.g. "openai/gpt-4o") after switching to OpenAI —
-  // that string won't match any entry in OPENAI_MODELS so we fall back to "gpt-4o".
-  const modelId = model?.id ?? models[0]?.id ?? s.modelId ?? DEFAULT_MODEL_ID
-  // Z.ai does not support grounding; only openrouter and openai do
-  const supportsGrounding =
-    (s.provider === "openrouter" || s.provider === "openai") &&
-    s.webGrounding &&
-    (model?.supportsGrounding ?? false)
-  return { apiKey: s.apiKey, modelId, supportsGrounding, provider: s.provider, customBaseUrl: s.customBaseUrl }
+
+  // Explicitly configured in browser settings takes priority
+  if (s.apiKey) {
+    const models = getModelsForProvider(s.provider)
+    const model = models.find(m => m.id === s.modelId)
+    const modelId = model?.id ?? models[0]?.id ?? s.modelId ?? DEFAULT_MODEL_ID
+    const supportsGrounding =
+      (s.provider === "openrouter" || s.provider === "openai") &&
+      s.webGrounding &&
+      (model?.supportsGrounding ?? false)
+    return { apiKey: s.apiKey, modelId, supportsGrounding, provider: s.provider, customBaseUrl: s.customBaseUrl }
+  }
+
+  // Fallback to server/runtime environment defaults if OPENAI_URL and OPENAI_MODEL are present
+  if (typeof process !== "undefined" && process.env) {
+    const envUrl = process.env.OPENAI_URL
+    const envModel = process.env.OPENAI_MODEL
+    const envApi = process.env.OPENAI_API || ""
+    if (envUrl && envModel) {
+      // Normalize base URL
+      let normUrl = envUrl.trim()
+      while (normUrl.endsWith("/")) normUrl = normUrl.slice(0, -1)
+      if (!normUrl.endsWith("/v1")) normUrl = `${normUrl}/v1`
+
+      return {
+        apiKey: envApi,
+        modelId: envModel.trim(),
+        supportsGrounding: false,
+        provider: "openai-compatible",
+        customBaseUrl: normUrl,
+      }
+    }
+  }
+
+  return null
 }
 
 export function getBaseUrl(config: AIConfig): string {
   const custom = config.customBaseUrl?.trim()
-  return custom || getPreset(config.provider).baseUrl
+  if (custom) return custom
+  return getPreset(config.provider).baseUrl
 }
 
 export function getProviderHeaders(config: AIConfig): Record<string, string> {
   const base: Record<string, string> = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${config.apiKey}`,
+  }
+  if (config.apiKey) {
+    base["Authorization"] = `Bearer ${config.apiKey}`
   }
   if (config.provider === "openrouter") {
     base["HTTP-Referer"] = "https://nodepad.space"
@@ -317,10 +341,6 @@ export function getAIHeaders(): Record<string, string> {
 }
 
 export function useAISettings() {
-  // Always start with the SSR-safe default so server and client render identically.
-  // Load the real localStorage value after mount to avoid hydration mismatches
-  // caused by settings.apiKey toggling conditional DOM blocks (API key banner,
-  // modelLabel prop, etc.) between the server render and client hydration.
   const [settings, setSettings] = useState<AISettings>({
     apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false,
     provider: DEFAULT_PROVIDER, customBaseUrl: "",

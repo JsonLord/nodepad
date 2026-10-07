@@ -15,7 +15,7 @@ This codebase is configured for deployment on Hugging Face Spaces using the Dock
 - **Dockerfile:** Multi-stage Docker build utilizing Next.js standalone output mode (`output: "standalone"` in `next.config.mjs`).
 - **Port Mapping:** Exposes port `7860` and sets `PORT=7860` and `HOSTNAME="0.0.0.0"`.
 
-### Environment Variables
+### Environment Variables & Runtime LLM Default Configuration
 All configuration variables are read dynamically from `process.env`. Key variables include:
 - `NODEPAD_DATA_DIR`: Root directory for file-backed storage (default `./data`).
 - `NODEPAD_STORE`: Store strategy (`file`).
@@ -26,7 +26,17 @@ All configuration variables are read dynamically from `process.env`. Key variabl
 - `NODEPAD_GITHUB_SYNC`, `NODEPAD_GITHUB_REPOSITORY`, `NODEPAD_GITHUB_TOKEN`, `NODEPAD_GITHUB_BRANCH`: Remote GitHub backup configuration.
 - `NODEPAD_API_KEY`: Optional Bearer token for API authorization.
 
-Note: Hugging Face API tokens are passed via runtime environment or headers and never hardcoded.
+#### Hugging Face Space Runtime LLM Configuration:
+- **HF Space Variables:**
+  - `OPENAI_URL`: Base URL of OpenAI-compatible inference server (e.g. `https://my-openai-server.example.com/v1`).
+  - `OPENAI_MODEL`: Model identifier (e.g. `gemma-3-12b`).
+- **HF Space Secret:**
+  - `OPENAI_API`: API key/bearer token for the endpoint.
+
+**Crucial:**
+- Never put `OPENAI_API` in a Space Variable. Always put secrets into HF Space Secrets.
+- Changing `OPENAI_URL`, `OPENAI_MODEL`, or `OPENAI_API` does NOT require rebuilding the Docker container — only a standard Hugging Face Space restart is needed to pick up updated runtime environment variables.
+- `OPENAI_API` is kept strictly server-side and is NEVER sent to client browsers or stored in workspace backups or brain exports.
 
 ---
 
@@ -41,6 +51,8 @@ Note: Hugging Face API tokens are passed via runtime environment or headers and 
   - Purpose: Documents all functional API endpoints exposed by the server. Accessible at `https://Leon4gr45-nodepad-hypotheses.hf.space/api-docs`.
 
 ### Functional Endpoints
+- **`/api/v1/llm/status`** (GET): Returns health and availability status of the default OpenAI-compatible LLM provider without exposing secrets.
+- **`/api/v1/llm/test`** (POST): Authenticated test route (`NODEPAD_API_KEY` required if set) sending prompt payload to test the configured default LLM provider.
 - **`/api/v1/portfolio`** (GET): Aggregate portfolio metrics across workspaces.
 - **`/api/v1/workspaces`** (GET): List active workspaces.
 - **`/api/v1/workspaces/:id/graph`** (GET): Query workspace spatial/knowledge graph with filters.

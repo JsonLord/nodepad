@@ -21,6 +21,20 @@ export async function GET() {
         response: "JSON object documenting API endpoints."
       },
       {
+        path: "/api/v1/llm/status",
+        method: "GET",
+        purpose: "Get status of environment-configured OpenAI-compatible default LLM provider.",
+        request: "None",
+        response: { configured: true, provider: "openai-compatible", baseUrl: "https://example.com/v1", model: "gemma-3-12b", status: "available" }
+      },
+      {
+        path: "/api/v1/llm/test",
+        method: "POST",
+        purpose: "Test prompt on configured default LLM provider.",
+        request: "POST JSON: { prompt: 'Respond only with NODEPAD_LLM_OK' } (Requires NODEPAD_API_KEY if configured)",
+        response: { content: "NODEPAD_LLM_OK", model: "gemma-3-12b", provider: "openai-compatible" }
+      },
+      {
         path: "/api/v1/portfolio",
         method: "GET",
         purpose: "Get portfolio summary across workspaces.",
