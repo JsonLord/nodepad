@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   typescript: {
     // Build errors are intentionally ignored — see CLAUDE.md
     ignoreBuildErrors: true,
