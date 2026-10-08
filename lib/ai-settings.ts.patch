@@ -1,0 +1,38 @@
+--- lib/ai-settings.ts
++++ lib/ai-settings.ts
+@@ -329,10 +329,17 @@
+     apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false,
+     provider: DEFAULT_PROVIDER, customBaseUrl: "",
+   })
+   const [isHydrated, setIsHydrated] = useState(false)
++  const [envConfig, setEnvConfig] = useState<{hasEnvKey: boolean, envModel: string | null} | null>(null)
+
+   useEffect(() => {
+     setSettings(loadSettings())
+-    setIsHydrated(true)
++    fetch('/api/v1/config')
++      .then(res => res.json())
++      .then(data => {
++        setEnvConfig({ hasEnvKey: data.hasEnvKey, envModel: data.envModel })
++      })
++      .catch(() => { setEnvConfig({ hasEnvKey: false, envModel: null }) })
++      .finally(() => setIsHydrated(true))
+   }, [])
+
+@@ -367,9 +374,11 @@
+
+   const currentModel: AIModel = models.find(m => m.id === settings.modelId) || models[0] || {
+     id: settings.modelId,
+-    label: settings.modelId,
+-    shortLabel: settings.modelId.split("/").pop() || settings.modelId,
++    label: envConfig?.envModel || settings.modelId,
++    shortLabel: (envConfig?.envModel || settings.modelId).split("/").pop() || (envConfig?.envModel || settings.modelId),
+     description: "Custom model",
+     supportsGrounding: false,
+   }
+
+-  return { settings, updateSettings, resolvedModelId, currentModel, models, isHydrated }
++  const hasKey = !!(settings.apiKey || envConfig?.hasEnvKey)
++  const fullyHydrated = isHydrated && envConfig !== null
++  return { settings, updateSettings, resolvedModelId, currentModel, models, isHydrated: fullyHydrated, hasKey }
+ }

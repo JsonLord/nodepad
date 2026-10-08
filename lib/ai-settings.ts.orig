@@ -346,17 +346,10 @@ export function useAISettings() {
     provider: DEFAULT_PROVIDER, customBaseUrl: "",
   })
   const [isHydrated, setIsHydrated] = useState(false)
-  const [envConfig, setEnvConfig] = useState<{hasEnvKey: boolean, envModel: string | null} | null>(null)
 
   useEffect(() => {
     setSettings(loadSettings())
-    fetch('/api/v1/config')
-      .then(res => res.json())
-      .then(data => {
-        setEnvConfig({ hasEnvKey: data.hasEnvKey, envModel: data.envModel })
-      })
-      .catch(() => { setEnvConfig({ hasEnvKey: false, envModel: null }) })
-      .finally(() => setIsHydrated(true))
+    setIsHydrated(true)
   }, [])
 
   const updateSettings = useCallback((patch: Partial<AISettings>) => {
@@ -380,13 +373,11 @@ export function useAISettings() {
 
   const currentModel: AIModel = models.find(m => m.id === settings.modelId) || models[0] || {
     id: settings.modelId,
-    label: envConfig?.envModel || settings.modelId,
-    shortLabel: (envConfig?.envModel || settings.modelId).split("/").pop() || (envConfig?.envModel || settings.modelId),
+    label: settings.modelId,
+    shortLabel: settings.modelId.split("/").pop() || settings.modelId,
     description: "Custom model",
     supportsGrounding: false,
   }
 
-  const hasKey = !!(settings.apiKey || envConfig?.hasEnvKey)
-  const fullyHydrated = isHydrated && envConfig !== null
-  return { settings, updateSettings, resolvedModelId, currentModel, models, isHydrated: fullyHydrated, hasKey }
+  return { settings, updateSettings, resolvedModelId, currentModel, models, isHydrated }
 }
