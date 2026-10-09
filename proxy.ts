@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { isAuthenticated, requireAuth } from "@/lib/auth/server"
 
 // ── Sliding-window rate limiter ───────────────────────────────────────────────
 // Guards /api/fetch-url from being hammered as a public CORS proxy.
@@ -20,8 +21,17 @@ function isRateLimited(ip: string, path: string): boolean {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  const publicPaths = new Set(["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/status", "/health", "/api-docs"])
+  if (publicPaths.has(pathname)) return NextResponse.next()
+  if (pathname.startsWith("/api/")) {
+    const denied = requireAuth(req)
+    if (denied) return denied
+  } else if (!isAuthenticated(req)) {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
   if (!pathname.startsWith("/api/fetch-url")) {
-    return NextResponse.next()
+    return NextResponse.next({ headers: { "Cache-Control": "private, no-store" } })
   }
 
   // Origin check — block requests from other origins.
@@ -58,9 +68,9 @@ export function proxy(req: NextRequest) {
     })
   }
 
-  return NextResponse.next()
+  return NextResponse.next({ headers: { "Cache-Control": "private, no-store" } })
 }
 
 export const config = {
-  matcher: ["/api/fetch-url"],
+  matcher: ["/((?!_next/static|_next/image|icon.svg|favicon.ico|apple-icon.png).*)"],
 }

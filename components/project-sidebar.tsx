@@ -28,6 +28,7 @@ import {
   type AIProvider,
 } from "@/lib/ai-settings"
 
+import { LogoutButton } from "@/components/logout-button"
 import { useAvailableModels } from "@/lib/use-available-models"
 
 interface Project {
@@ -452,6 +453,7 @@ export function ProjectSidebar({
         </div>
 
         {/* Footer */}
+        <div className="px-3 pb-2"><LogoutButton /></div>
         <div className="p-3 border-t border-border bg-muted/10 shrink-0">
           {showSettings ? (
             <div className="flex flex-col gap-1.5">

@@ -8,6 +8,8 @@ app_port: 7860
 
 > Nodepad is also a durable evidence-to-hypothesis operating system: one shared entity graph, many views, deterministic qualification, and an auditable developing brain.
 
+Browser access requires `NODEPAD_LOGIN_KEY`; machine clients use the separate `NODEPAD_API_KEY`. Configure both as deployment secrets. See [authentication setup](docs/AUTHENTICATION.md).
+
 ## Evidence brain quick start
 
 ```bash

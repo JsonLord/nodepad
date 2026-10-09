@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/auth/server"
 import { isIP } from "node:net"
 import { lookup } from "node:dns/promises"
 import { NextRequest, NextResponse } from "next/server"
@@ -135,6 +136,8 @@ async function isBlockedResolvedUrl(rawUrl: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = requireAuth(req)
+  if (denied) return denied
   try {
     if (Number(req.headers.get("content-length") ?? 0) > 16_384) return NextResponse.json({ error: "Request too large" }, { status: 413 })
     const { url } = await req.json()

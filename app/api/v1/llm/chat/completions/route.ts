@@ -1,10 +1,10 @@
+import { requireAuth } from "@/lib/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { completeChat } from "@/lib/ai/openai-provider"
 
 export async function POST(req: NextRequest) {
-  if (process.env.NODEPAD_API_KEY && req.headers.get("authorization") !== `Bearer ${process.env.NODEPAD_API_KEY}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const denied = requireAuth(req)
+  if (denied) return denied
   try {
     const body = await req.json()
     const result = await completeChat({ messages: body.messages, model: typeof body.model === "string" ? body.model.trim() : undefined,

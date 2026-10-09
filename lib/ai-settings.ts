@@ -177,6 +177,7 @@ export const ZAI_MODELS: AIModel[] = [
 ]
 
 export function getModelsForProvider(provider: AIProvider): AIModel[] {
+  if (provider === "openai-compatible") return []
   if (provider === "openai") return OPENAI_MODELS
   if (provider === "zai")    return ZAI_MODELS
   return AI_MODELS // openrouter + safe fallback for any stale localStorage value
