@@ -11,7 +11,11 @@
     "test:registry": "tsx --test tests/synthesis-registry.test.ts",
     "validate:fixture": "tsx scripts/validate-fixture.ts",
     "heartbeat": "tsx worker/heartbeat.ts",
-    "dev:all": "sh -c 'next dev & tsx worker/heartbeat.ts; wait'"
+    "dev:all": "sh -c 'next dev & tsx worker/heartbeat.ts; wait'",
+    "test:predeploy:unit": "tsx --import ./scripts/predeploy-env.ts --test tests/**/*.test.ts",
+    "test:predeploy:smoke": "tsx scripts/predeploy-smoke.ts",
+    "test:predeploy:docker": "tsx scripts/predeploy-docker.ts",
+    "test:predeploy": "tsx scripts/predeploy.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
