@@ -1,3 +1,5 @@
+import { sanitizeModels } from "../model-selection"
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant"
   content: string
@@ -265,4 +267,33 @@ export async function completeChat(
     }
     throw err
   }
+}
+
+/** Discover opaque model IDs without exposing credentials or upstream errors. */
+export async function discoverModels(fetchImpl: typeof fetch = fetch) {
+  const config = getEnvLlmConfig()
+  const result = {
+    provider: "openai-compatible" as const,
+    configured: Boolean(config.baseUrl),
+    defaultModel: config.model,
+    models: sanitizeModels([], config.model),
+    discoveryStatus: "not_configured",
+  }
+  if (!config.baseUrl) return result
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5000)
+  try {
+    const response = await fetchImpl(`${config.baseUrl}/models`, {
+      headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
+      signal: controller.signal,
+      cache: "no-store",
+    })
+    if (response.status === 401 || response.status === 403) return { ...result, discoveryStatus: "auth_error" }
+    if (!response.ok) return { ...result, discoveryStatus: "fallback" }
+    const data = await response.json()
+    const discovered = sanitizeModels(data?.data)
+    return { ...result, models: sanitizeModels(discovered, config.model), discoveryStatus: discovered.length ? "available" : "fallback" }
+  } catch {
+    return { ...result, discoveryStatus: "unreachable" }
+  } finally { clearTimeout(timer) }
 }

@@ -21,8 +21,8 @@ export async function generateGhostClient(
   const config = loadAIConfig()
   if (!config) throw new Error("No API key configured")
 
-  // Ghost falls back to a lighter model if none is set
-  const model = config.modelId || "google/gemini-2.0-flash-lite-001"
+  const model = config.modelId
+  if (!model) throw new Error("No model selected")
 
   const categories = [...new Set(context.map(c => c.category).filter(Boolean))]
 

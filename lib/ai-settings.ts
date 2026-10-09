@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useAvailableModels } from "@/lib/use-available-models"
+import { resolveModelId } from "@/lib/model-selection"
 
 export interface AIModel {
   id: string
@@ -180,7 +182,7 @@ export function getModelsForProvider(provider: AIProvider): AIModel[] {
   return AI_MODELS // openrouter + safe fallback for any stale localStorage value
 }
 
-export const DEFAULT_MODEL_ID = "openai/gpt-4o"
+export const DEFAULT_MODEL_ID = ""
 export const DEFAULT_PROVIDER: AIProvider = "openrouter"
 
 // ── Dynamic model fetching ────────────────────────────────────────────────────
@@ -245,6 +247,10 @@ export interface AISettings {
 }
 
 const STORAGE_KEY = "nodepad-ai-settings"
+let deploymentModel = ""
+let discoveredBrowserModel = ""
+export function setDiscoveredBrowserModel(model: string) { discoveredBrowserModel = model }
+export function setDeploymentModel(model: string) { deploymentModel = model }
 
 function loadSettings(): AISettings {
   if (typeof window === "undefined") {
@@ -274,12 +280,18 @@ export function loadAIConfig(): AIConfig | null {
   if (s.apiKey) {
     const models = getModelsForProvider(s.provider)
     const model = models.find(m => m.id === s.modelId)
-    const modelId = model?.id ?? models[0]?.id ?? s.modelId ?? DEFAULT_MODEL_ID
+    const modelId = s.modelId.trim() || discoveredBrowserModel
     const supportsGrounding =
       (s.provider === "openrouter" || s.provider === "openai") &&
-      s.webGrounding &&
+      !s.customBaseUrl && s.webGrounding &&
       (model?.supportsGrounding ?? false)
     return { apiKey: s.apiKey, modelId, supportsGrounding, provider: s.provider, customBaseUrl: s.customBaseUrl }
+  }
+
+  // Deployment credentials stay on the server; browser requests carry only model IDs.
+  if (typeof window !== "undefined" && deploymentModel) {
+    return { apiKey: "", modelId: s.modelId.trim() || deploymentModel,
+      supportsGrounding: false, provider: "openai-compatible", customBaseUrl: "/api/v1/llm" }
   }
 
   // Fallback to server/runtime environment defaults if OPENAI_URL and OPENAI_MODEL are present
@@ -295,7 +307,7 @@ export function loadAIConfig(): AIConfig | null {
 
       return {
         apiKey: envApi,
-        modelId: envModel.trim(),
+        modelId: s.modelId.trim() || envModel.trim(),
         supportsGrounding: false,
         provider: "openai-compatible",
         customBaseUrl: normUrl,
@@ -332,11 +344,11 @@ export function getAIHeaders(): Record<string, string> {
   const config = loadAIConfig()
   if (!config) return {}
   const models = getModelsForProvider(config.provider)
-  const model = models.find(m => m.id === config.modelId) || AI_MODELS.find(m => m.id === DEFAULT_MODEL_ID)!
+  const model = models.find(m => m.id === config.modelId)
   return {
     "x-or-key": config.apiKey,
     "x-or-model": config.modelId,
-    "x-or-supports-grounding": model.supportsGrounding ? "true" : "false",
+    "x-or-supports-grounding": model?.supportsGrounding ? "true" : "false",
   }
 }
 
@@ -353,6 +365,7 @@ export function useAISettings() {
     fetch('/api/v1/config')
       .then(res => res.json())
       .then(data => {
+        setDeploymentModel(data.envModel || "")
         setEnvConfig({ hasEnvKey: data.hasEnvKey, envModel: data.envModel })
       })
       .catch(() => { setEnvConfig({ hasEnvKey: false, envModel: null }) })
@@ -367,26 +380,13 @@ export function useAISettings() {
     })
   }, [])
 
-  const models = getModelsForProvider(settings.provider)
-
-  const resolvedModelId = (() => {
-    const model = models.find(m => m.id === settings.modelId) || models[0]
-    if (!model) return settings.modelId
-    if (settings.provider === "openrouter" && settings.webGrounding && model.supportsGrounding) {
-      return `${model.id}:online`
-    }
-    return model.id
-  })()
-
-  const currentModel: AIModel = models.find(m => m.id === settings.modelId) || models[0] || {
-    id: settings.modelId,
-    label: envConfig?.envModel || settings.modelId,
-    shortLabel: (envConfig?.envModel || settings.modelId).split("/").pop() || (envConfig?.envModel || settings.modelId),
-    description: "Custom model",
-    supportsGrounding: false,
+  const registry = useAvailableModels(settings)
+  const resolvedModelId = resolveModelId(settings.modelId, registry.defaultModel, registry.models)
+  const currentModel: AIModel = {
+    id: resolvedModelId, label: resolvedModelId, shortLabel: resolvedModelId,
+    description: "Custom model", supportsGrounding: false,
   }
-
   const hasKey = !!(settings.apiKey || envConfig?.hasEnvKey)
-  const fullyHydrated = isHydrated && envConfig !== null
-  return { settings, updateSettings, resolvedModelId, currentModel, models, isHydrated: fullyHydrated, hasKey }
+  return { settings, updateSettings, resolvedModelId, currentModel, models: registry.models,
+    isHydrated: isHydrated && envConfig !== null, hasKey }
 }
