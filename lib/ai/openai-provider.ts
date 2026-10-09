@@ -1,3 +1,5 @@
+import { sanitizeModels } from "../model-selection"
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant"
   content: string
@@ -177,7 +179,7 @@ export async function getProviderStatus(fetchImpl: typeof fetch = fetch): Promis
       baseUrl: config.baseUrl,
       model: config.model,
       status: isAbort ? "degraded" : "unreachable",
-      warning: err instanceof Error ? err.message : String(err),
+      warning: config.apiKey ? (err instanceof Error ? err.message : String(err)).split(config.apiKey).join("[REDACTED]") : (err instanceof Error ? err.message : String(err)),
     }
   }
 }
@@ -235,7 +237,7 @@ export async function completeChat(
         throw new Error(`LLM provider rate limit exceeded (${res.status}).`)
       }
       // Mask any potential key in raw error body if present
-      const safeErrBody = errBody.replace(config.apiKey, "[REDACTED]")
+      const safeErrBody = config.apiKey ? errBody.split(config.apiKey).join("[REDACTED]") : errBody
       throw new Error(
         `LLM provider request failed (${res.status}): ${safeErrBody || res.statusText}`
       )
@@ -251,7 +253,8 @@ export async function completeChat(
       throw new Error("LLM provider returned non-JSON response.")
     }
 
-    const content = data.choices?.[0]?.message?.content ?? ""
+    const content = data.choices?.[0]?.message?.content
+    if (typeof content !== "string") throw new Error("LLM provider returned a malformed completion response.")
     const returnedModel = data.model || modelToUse
 
     return {
@@ -263,6 +266,38 @@ export async function completeChat(
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error("LLM request timed out after 30s.")
     }
+    if (err instanceof Error && config.apiKey && err.message.includes(config.apiKey)) {
+      throw new Error(err.message.split(config.apiKey).join("[REDACTED]"))
+    }
     throw err
   }
+}
+
+/** Discover opaque model IDs without exposing credentials or upstream errors. */
+export async function discoverModels(fetchImpl: typeof fetch = fetch) {
+  const config = getEnvLlmConfig()
+  const result = {
+    provider: "openai-compatible" as const,
+    configured: Boolean(config.baseUrl),
+    defaultModel: config.model,
+    models: sanitizeModels([], config.model),
+    discoveryStatus: "not_configured",
+  }
+  if (!config.baseUrl) return result
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5000)
+  try {
+    const response = await fetchImpl(`${config.baseUrl}/models`, {
+      headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
+      signal: controller.signal,
+      cache: "no-store",
+    })
+    if (response.status === 401 || response.status === 403) return { ...result, discoveryStatus: "auth_error" }
+    if (!response.ok) return { ...result, discoveryStatus: "fallback" }
+    const data = await response.json()
+    const discovered = sanitizeModels(data?.data)
+    return { ...result, models: sanitizeModels(discovered, config.model), discoveryStatus: discovered.length ? "available" : "fallback" }
+  } catch {
+    return { ...result, discoveryStatus: "unreachable" }
+  } finally { clearTimeout(timer) }
 }

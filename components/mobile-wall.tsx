@@ -1,6 +1,10 @@
 "use client"
 
+import { usePathname } from "next/navigation"
+
 export function MobileWall() {
+  const pathname = usePathname()
+  if (pathname === "/login") return null
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background px-8 text-center md:hidden" style={{ paddingBottom: "15vh" }}>
       {/* Logo */}
