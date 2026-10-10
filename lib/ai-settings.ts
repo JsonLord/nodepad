@@ -14,177 +14,10 @@ export interface AIModel {
   groundingModelId?: string
 }
 
-export type AIProvider = "openrouter" | "openai" | "zai" | "openai-compatible"
-
-export interface AIProviderPreset {
-  id: AIProvider
-  label: string
-  baseUrl: string
-  keyUrl: string
-  keyPlaceholder: string
-}
-
-export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
-  {
-    id: "openrouter",
-    label: "OpenRouter",
-    baseUrl: "https://openrouter.ai/api/v1",
-    keyUrl: "https://openrouter.ai/settings/keys",
-    keyPlaceholder: "sk-or-v1-...",
-  },
-  {
-    id: "openai",
-    label: "OpenAI",
-    baseUrl: "https://api.openai.com/v1",
-    keyUrl: "https://platform.openai.com/api-keys",
-    keyPlaceholder: "sk-...",
-  },
-  {
-    id: "zai",
-    label: "Z.ai",
-    baseUrl: "https://api.z.ai/api/paas/v4",
-    keyUrl: "https://z.ai/manage-apikey/apikey-list",
-    keyPlaceholder: "Your Z.ai API key",
-  },
-]
-
-export function getPreset(provider: AIProvider): AIProviderPreset {
-  return AI_PROVIDER_PRESETS.find(p => p.id === provider) || AI_PROVIDER_PRESETS[0]
-}
-
-export const AI_MODELS: AIModel[] = [
-  {
-    id: "anthropic/claude-sonnet-4-5",
-    label: "Claude Sonnet 4.5",
-    shortLabel: "Claude",
-    description: "Best reasoning & annotation quality",
-    supportsGrounding: false,
-  },
-  {
-    id: "openai/gpt-4o",
-    label: "GPT-4o",
-    shortLabel: "GPT-4o",
-    description: "Strong structured output, broad knowledge",
-    supportsGrounding: true,
-  },
-  {
-    id: "google/gemini-2.5-pro-preview-03-25",
-    label: "Gemini 2.5 Pro",
-    shortLabel: "Gemini",
-    description: "Long-context, web grounding available",
-    supportsGrounding: true,
-  },
-  {
-    id: "deepseek/deepseek-chat",
-    label: "DeepSeek V3",
-    shortLabel: "DeepSeek",
-    description: "Cost-efficient frontier model",
-    supportsGrounding: false,
-  },
-  {
-    id: "mistralai/mistral-small-3.2-24b-instruct",
-    label: "Mistral Small 3.2",
-    shortLabel: "Mistral",
-    description: "Fast, excellent structured outputs",
-    supportsGrounding: false,
-  },
-  // ── Free tier (no credits required, ~200 req/day limit) ─────────────────
-  {
-    id: "nvidia/nemotron-3-nano-30b-a3b:free",
-    label: "Nemotron 30B · Free",
-    shortLabel: "Nemotron",
-    description: "Free · no credits · ~200 req/day · Nvidia-hosted",
-    supportsGrounding: false,
-  },
-  {
-    id: "nvidia/nemotron-3-super-120b-a12b:free",
-    label: "Nemotron 120B · Free",
-    shortLabel: "Nemotron",
-    description: "Free · no credits · ~200 req/day · Nvidia-hosted · MoE",
-    supportsGrounding: false,
-  },
-]
-
-export const OPENAI_MODELS: AIModel[] = [
-  {
-    id: "gpt-4o",
-    label: "GPT-4o",
-    shortLabel: "GPT-4o",
-    description: "Strong structured output, broad knowledge",
-    supportsGrounding: true,
-    groundingModelId: "gpt-4o-search-preview",
-  },
-  {
-    id: "gpt-4o-mini",
-    label: "GPT-4o Mini",
-    shortLabel: "GPT-4o Mini",
-    description: "Fast and capable, web grounding available",
-    supportsGrounding: true,
-    groundingModelId: "gpt-4o-mini-search-preview",
-  },
-  {
-    id: "gpt-4.1",
-    label: "GPT-4.1",
-    shortLabel: "GPT-4.1",
-    description: "Latest GPT-4, improved instruction following",
-    supportsGrounding: false,
-  },
-  {
-    id: "gpt-4.1-mini",
-    label: "GPT-4.1 Mini",
-    shortLabel: "GPT-4.1 Mini",
-    description: "Fast and capable, good balance",
-    supportsGrounding: false,
-  },
-  {
-    id: "o4-mini",
-    label: "o4-mini",
-    shortLabel: "o4-mini",
-    description: "Fast reasoning model",
-    supportsGrounding: false,
-  },
-]
-
-export const ZAI_MODELS: AIModel[] = [
-  {
-    id: "glm-4.5",
-    label: "GLM-4.5",
-    shortLabel: "GLM-4.5",
-    description: "Fast, cost-efficient Z.ai model",
-    supportsGrounding: false,
-  },
-  {
-    id: "glm-4.7",
-    label: "GLM-4.7",
-    shortLabel: "GLM-4.7",
-    description: "Strong reasoning, 200K context",
-    supportsGrounding: false,
-  },
-  {
-    id: "glm-5",
-    label: "GLM-5",
-    shortLabel: "GLM-5",
-    description: "Z.ai flagship model",
-    supportsGrounding: false,
-  },
-  {
-    id: "glm-5-turbo",
-    label: "GLM-5 Turbo",
-    shortLabel: "GLM-5 Turbo",
-    description: "Fast, capable, community tested",
-    supportsGrounding: false,
-  },
-]
-
-export function getModelsForProvider(provider: AIProvider): AIModel[] {
-  if (provider === "openai-compatible") return []
-  if (provider === "openai") return OPENAI_MODELS
-  if (provider === "zai")    return ZAI_MODELS
-  return AI_MODELS // openrouter + safe fallback for any stale localStorage value
-}
+export type AIProvider = "openai-compatible"
 
 export const DEFAULT_MODEL_ID = ""
-export const DEFAULT_PROVIDER: AIProvider = "openrouter"
+export const DEFAULT_PROVIDER: AIProvider = "openai-compatible"
 
 // ── Dynamic model fetching ────────────────────────────────────────────────────
 
@@ -202,13 +35,9 @@ export async function fetchModelsFromProvider(
   apiKey: string,
   customBaseUrl?: string,
 ): Promise<FetchedModel[]> {
-  const baseUrl = customBaseUrl?.trim() || getPreset(provider).baseUrl
+  const baseUrl = customBaseUrl?.trim() || ""
   const headers: Record<string, string> = {
     "Authorization": `Bearer ${apiKey}`,
-  }
-  if (provider === "openrouter") {
-    headers["HTTP-Referer"] = "https://nodepad.space"
-    headers["X-Title"] = "nodepad"
   }
   const res = await fetch(`${baseUrl}/models`, { headers })
   if (!res.ok) throw new Error(`Failed to fetch models (${res.status})`)
@@ -279,14 +108,8 @@ export function loadAIConfig(): AIConfig | null {
 
   // Explicitly configured in browser settings takes priority
   if (s.apiKey) {
-    const models = getModelsForProvider(s.provider)
-    const model = models.find(m => m.id === s.modelId)
     const modelId = s.modelId.trim() || discoveredBrowserModel
-    const supportsGrounding =
-      (s.provider === "openrouter" || s.provider === "openai") &&
-      !s.customBaseUrl && s.webGrounding &&
-      (model?.supportsGrounding ?? false)
-    return { apiKey: s.apiKey, modelId, supportsGrounding, provider: s.provider, customBaseUrl: s.customBaseUrl }
+    return { apiKey: s.apiKey, modelId, supportsGrounding: false, provider: s.provider, customBaseUrl: s.customBaseUrl }
   }
 
   // Deployment credentials stay on the server; browser requests carry only model IDs.
@@ -322,7 +145,7 @@ export function loadAIConfig(): AIConfig | null {
 export function getBaseUrl(config: AIConfig): string {
   const custom = config.customBaseUrl?.trim()
   if (custom) return custom
-  return getPreset(config.provider).baseUrl
+  return ""
 }
 
 export function getProviderHeaders(config: AIConfig): Record<string, string> {
@@ -332,25 +155,7 @@ export function getProviderHeaders(config: AIConfig): Record<string, string> {
   if (config.apiKey) {
     base["Authorization"] = `Bearer ${config.apiKey}`
   }
-  if (config.provider === "openrouter") {
-    base["HTTP-Referer"] = "https://nodepad.space"
-    base["X-Title"] = "nodepad"
-  }
   return base
-}
-
-/** @deprecated Use loadAIConfig() for direct browser → provider calls.
- *  Kept for any remaining server-route usage during transition. */
-export function getAIHeaders(): Record<string, string> {
-  const config = loadAIConfig()
-  if (!config) return {}
-  const models = getModelsForProvider(config.provider)
-  const model = models.find(m => m.id === config.modelId)
-  return {
-    "x-or-key": config.apiKey,
-    "x-or-model": config.modelId,
-    "x-or-supports-grounding": model?.supportsGrounding ? "true" : "false",
-  }
 }
 
 export function useAISettings() {

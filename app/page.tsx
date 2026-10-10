@@ -937,23 +937,7 @@ export default function Page() {
 
         {isHydrated && !hasKey && (
           <div className="flex items-center justify-center gap-3 px-4 py-2 bg-amber-950/80 border-b border-amber-800/60 text-amber-200 text-xs shrink-0">
-            <span className="opacity-80">⚡ AI enrichment requires an <strong className="text-amber-200">OpenRouter API key</strong> — use a free model (no credits needed) or add credits for GPT-4o, Claude, and more. Configure in the <strong className="text-amber-200">☰ left panel</strong>.</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => { setIsSidebarOpen(true); setJumpToSettings(true) }}
-                className="px-2.5 py-1 rounded bg-amber-700/60 hover:bg-amber-600/70 text-amber-100 font-medium transition-colors cursor-pointer border border-amber-600/50"
-              >
-                Add API key →
-              </button>
-              <a
-                href="https://openrouter.ai/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-60 hover:opacity-90 transition-opacity underline underline-offset-2"
-              >
-                Get a free key ↗
-              </a>
-            </div>
+            <span className="opacity-80">⚡ AI provider is not configured. Set <strong className="text-amber-200">OPENAI_URL</strong>, <strong className="text-amber-200">OPENAI_API</strong> and <strong className="text-amber-200">OPENAI_MODEL</strong> in the deployment environment.</span>
           </div>
         )}
 

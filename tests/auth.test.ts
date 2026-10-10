@@ -13,7 +13,6 @@ import { GET as modelsGet } from "../app/api/v1/llm/models/route"
 import { proxy } from "../proxy"
 import { serializeWorkspace } from "../lib/github-sync/serialization"
 import { fixture } from "./helpers"
-import { getModelsForProvider } from "../lib/ai-settings"
 import { loginReducer } from "../components/login-view"
 
 const request = (url: string, init: NonNullable<ConstructorParameters<typeof NextRequest>[1]> = {}) => new NextRequest(`http://localhost${url}`, init)
@@ -138,7 +137,6 @@ test("Nodepad human sessions and machine bearer authentication", async t => {
       assert.equal(JSON.stringify(loginReducer(logging, { type: "AUTH_VALID" })).includes("human-test-key"), false)
       assert.equal(JSON.stringify(loginReducer(logging, { type: "LOGIN_ERROR", message: "Invalid access key." })).includes("human-test-key"), false)
       assert.equal(loginReducer({ phase: "server_error", message: "Offline" }, { type: "RETRY" }).phase, "checking_server")
-      assert.deepEqual(getModelsForProvider("openai-compatible"), [])
     })
   } finally {
     for (const [name, value] of Object.entries(saved)) { if (value === undefined) delete process.env[name]; else process.env[name] = value }

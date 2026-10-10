@@ -21,12 +21,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react"
-import {
-  AI_PROVIDER_PRESETS,
-  getPreset,
-  type AISettings,
-  type AIProvider,
-} from "@/lib/ai-settings"
+import { type AISettings } from "@/lib/ai-settings"
 
 import { LogoutButton } from "@/components/logout-button"
 import { useAvailableModels } from "@/lib/use-available-models"
@@ -115,13 +110,7 @@ export function ProjectSidebar({
   }
 
   const persistSettings = () => {
-    // Trim key to strip accidental whitespace/newlines from paste
-    const trimmedKey = draft.apiKey.trim()
-    const providerKeys: Partial<Record<AIProvider, string>> = {
-      ...(draft.providerKeys ?? {}),
-      [draft.provider]: trimmedKey,
-    }
-    onUpdateAISettings({ ...draft, modelId: draft.modelId.trim(), apiKey: trimmedKey, providerKeys })
+    onUpdateAISettings({ ...draft, modelId: draft.modelId.trim() })
   }
 
   const handleSaveSettings = () => {
@@ -136,7 +125,6 @@ export function ProjectSidebar({
     onClose()
   }
 
-  const currentPreset = getPreset(draft.provider)
   const { models, defaultModel, loading, error, refresh } = useAvailableModels(draft)
 
   return (
@@ -300,110 +288,15 @@ export function ProjectSidebar({
                 transition={{ duration: 0.15 }}
                 className="absolute inset-0 overflow-y-auto px-3 py-4 flex flex-col gap-5 custom-scrollbar"
               >
-                {/* Provider Selector */}
+                {/* Deployment Provider Status */}
                 <div className="flex flex-col gap-2">
                   <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Provider
+                    AI Provider
                   </label>
-                  <div className="relative">
-                    <button
-                      onClick={() => setProviderOpen(v => !v)}
-                      className="flex w-full items-center justify-between rounded-md border border-border bg-muted/20 px-2.5 py-2 text-left hover:bg-muted/30 focus:outline-none transition-colors"
-                    >
-                      <span className="font-mono text-[11px] font-bold text-foreground">{currentPreset.label}</span>
-                      <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${providerOpen ? "rotate-180" : ""}`} />
-                    </button>
-                    <AnimatePresence>
-                      {providerOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.1 }}
-                          className="absolute top-full left-0 right-0 z-20 mt-1 overflow-hidden rounded-md border border-border bg-popover shadow-xl"
-                        >
-                          {AI_PROVIDER_PRESETS.map(preset => (
-                            <button
-                              key={preset.id}
-                              onClick={() => {
-                                setDraft(d => ({
-                                  ...d,
-                                  provider: preset.id,
-                                  webGrounding: d.webGrounding,
-                                  customBaseUrl: "",
-                                  // Restore the saved key for this provider if one exists,
-                                  // otherwise clear so the user knows to enter a new one.
-                                  apiKey: d.providerKeys?.[preset.id] ?? "",
-                                }))
-                                setProviderOpen(false)
-                              }}
-                              className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-muted/50 transition-colors"
-                            >
-                              <div className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
-                                draft.provider === preset.id ? "border-primary bg-primary/20" : "border-border"
-                              }`}>
-                                {draft.provider === preset.id && <Check className="h-2.5 w-2.5 text-primary" />}
-                              </div>
-                              <span className="font-mono text-[10px] font-bold text-foreground">{preset.label}</span>
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-[11px] font-bold text-foreground">OpenAI-compatible</span>
+                    <span className="font-mono text-[9px] text-muted-foreground leading-relaxed">Configured by deployment</span>
                   </div>
-                </div>
-
-                {/* API Key */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    API Key
-                  </label>
-                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-2.5 py-2 focus-within:border-primary/50 transition-colors">
-                    <Key className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={draft.apiKey}
-                      onChange={e => setDraft(d => ({ ...d, apiKey: e.target.value }))}
-                      placeholder={currentPreset.keyPlaceholder || "Your API key"}
-                      className="flex-1 bg-transparent font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground/40"
-                      style={showKey ? undefined : { WebkitTextSecurity: "disc" } as never}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                    <button onClick={() => setShowKey(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
-                      {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                    </button>
-                  </div>
-                  <p className="font-mono text-[9px] text-muted-foreground leading-relaxed">
-                    Stored locally. Never sent to a server.{" "}
-                    {currentPreset.keyUrl && (
-                      <a href={currentPreset.keyUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-primary underline hover:brightness-125 transition-all">
-                        Get a key →
-                      </a>
-                    )}
-                  </p>
-                </div>
-
-                {/* Custom Base URL */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Custom Base URL
-                  </label>
-                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-2.5 py-2 focus-within:border-primary/50 transition-colors">
-                    <input
-                      type="text"
-                      value={draft.customBaseUrl ?? ""}
-                      onChange={e => setDraft(d => ({ ...d, customBaseUrl: e.target.value }))}
-                      placeholder="Optional — for local/self-hosted endpoints"
-                      className="flex-1 bg-transparent font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground/40"
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <p className="font-mono text-[9px] text-muted-foreground leading-relaxed">
-                    Override the provider URL. Useful for Ollama, LM Studio, vLLM, or other OpenAI-compatible endpoints.
-                  </p>
                 </div>
 
                 {/* Model Selector */}
@@ -438,15 +331,6 @@ export function ProjectSidebar({
 
 
 
-                {/* API Status */}
-                <div className={`flex items-center gap-2 rounded-md px-2.5 py-2 font-mono text-[9px] ${
-                  draft.apiKey
-                    ? "bg-primary/10 border border-primary/20 text-primary"
-                    : "bg-muted/20 border border-border text-muted-foreground"
-                }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${draft.apiKey ? "bg-primary animate-pulse" : "bg-muted-foreground/40"}`} />
-                  {draft.apiKey ? `${currentPreset.label} — API key configured` : "No API key — AI disabled"}
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
