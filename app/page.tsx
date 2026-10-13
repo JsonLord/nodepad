@@ -740,7 +740,7 @@ export default function Page() {
     }
     setProjects(prev => [...prev, newProject])
     setActiveProjectId(newProject.id)
-  }, [])
+  }, [setProjects])
 
   const renameProject = useCallback((id: string, newName: string) => {
     setProjects(prev => prev.map(p => p.id === id ? { ...p, name: newName } : p))
@@ -885,7 +885,7 @@ export default function Page() {
     else if (cmd === "thesis" && text) addBlock(text, "thesis")
     
     setIsCommandKOpen(false)
-  }, [clearBlocks, addBlock, activeProjectId])
+  }, [clearBlocks, addBlock, activeProjectId, createProject])
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">

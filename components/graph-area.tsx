@@ -235,7 +235,7 @@ export function GraphArea({
       .on("tick", () => forceUpdate())
       .stop()
     return () => { simRef.current?.stop() }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Rebuild graph when data changes ─────────────────────────────────────
   React.useEffect(() => {
@@ -276,7 +276,7 @@ export function GraphArea({
 
     const isNew = blocks.length > prevBlockCount
     sim.alpha(isNew ? 0.45 : 0.20).restart()
-  }, [blocks, ghostNote]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [blocks, ghostNote])
 
   // ── Re-anchor radial centre on resize ────────────────────────────────────
   React.useEffect(() => {
@@ -296,7 +296,7 @@ export function GraphArea({
     sim.force("gravX", d3.forceX(cx).strength(0.018))
     sim.force("gravY", d3.forceY(cy).strength(0.018))
     sim.alpha(0.12).restart()
-  }, [dims]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dims, blocks, ghostNote])
 
   // ── Escape key to clear selection ────────────────────────────────────────
   React.useEffect(() => {
