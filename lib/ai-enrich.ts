@@ -1,7 +1,7 @@
 "use client"
 
 import { detectContentType } from "@/lib/detect-content-type"
-import { loadAIConfig, getBaseUrl, getProviderHeaders, getModelsForProvider } from "@/lib/ai-settings"
+import { loadAIConfig, getBaseUrl, getProviderHeaders } from "@/lib/ai-settings"
 import type { ContentType } from "@/lib/content-types"
 
 // ── Provider error parser ─────────────────────────────────────────────────────
@@ -288,17 +288,8 @@ export async function enrichBlockClient(
 
   let model = config.modelId
   let webSearchOptions: Record<string, unknown> | undefined
-  if (shouldGround) {
-    if (config.provider === "openrouter") {
-      if (!model.endsWith(":online")) model = `${model}:online`
-    } else if (config.provider === "openai") {
-      const modelDef = getModelsForProvider("openai").find(m => m.id === config.modelId)
-      if (modelDef?.groundingModelId) model = modelDef.groundingModelId
-      webSearchOptions = {}
-    }
-  }
 
-  const supportsJsonSchema = config.provider === "openrouter" || config.provider === "openai"
+  const supportsJsonSchema = false
   // gpt-*-search-preview models have known issues with strict json_schema + web_search_options;
   // fall back to json_object mode (guaranteed valid JSON, no schema enforcement)
   const useStrictSchema = supportsJsonSchema && !webSearchOptions

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { isAuthenticated, requireAuth } from "@/lib/auth/server"
+import { isAuthenticatedProxy } from "@/lib/auth/proxy"
 
 // ── Sliding-window rate limiter ───────────────────────────────────────────────
 // Guards /api/fetch-url from being hammered as a public CORS proxy.
@@ -24,9 +24,14 @@ export function proxy(req: NextRequest) {
   const publicPaths = new Set(["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/status", "/health", "/api-docs"])
   if (publicPaths.has(pathname)) return NextResponse.next()
   if (pathname.startsWith("/api/")) {
-    const denied = requireAuth(req)
-    if (denied) return denied
-  } else if (!isAuthenticated(req)) {
+    // API endpoints handle their own deep authentication via requireAuth.
+    // The proxy only does a light pass to ensure unauthenticated requests
+    // don't waste downstream resources, but relies on API route handlers
+    // to correctly reject unauthorized access.
+    if (!isAuthenticatedProxy(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } })
+    }
+  } else if (!isAuthenticatedProxy(req)) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
