@@ -23,6 +23,7 @@ export function dedupeEvidence(workspace: Workspace, similarity?: SemanticSimila
     // Retain full original records (including all source refs and provenance), not just IDs.
     duplicate.duplicateRecords = [...(duplicate.duplicateRecords || []), ...[item, ...(item.duplicateRecords || [])].map(({ duplicateRecords: _, ...record }) => record)]
   }
+  // Keep historical adjudications attached to original IDs; retained aliases resolve them.
   workspace.evidence = canonical
   const map = (ids: string[]) => [...new Set(ids.map(id => replacements.get(id) || id))]
   for (const h of workspace.hypotheses) { h.supportingEvidence = map(h.supportingEvidence); h.contradictingEvidence = map(h.contradictingEvidence); h.derivedFrom = map(h.derivedFrom) }

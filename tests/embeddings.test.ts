@@ -14,7 +14,7 @@ import { matchOrCreateHypothesis } from "../lib/hypotheses/matching"
 import { runHeartbeat } from "../lib/heartbeat"
 import { FileNodepadStore } from "../lib/persistence/file-store"
 import { serializeWorkspace } from "../lib/github-sync/serialization"
-import { fixture, evidence, hypothesis } from "./helpers"
+import { fixture, evidence, hypothesis, fixtureAdjudicator } from "./helpers"
 import type { EmbeddingProvider } from "../lib/embeddings/provider"
 const provider = (map: Record<string, number[]> = {}): EmbeddingProvider => ({ async embed(texts) { return texts.map(t => map[t] || [1, 0]) }, async health() { return { enabled: true, provider: "mock", model: "test", status: "available" } } })
 async function temporary(run: (dir: string) => Promise<void>) { const dir = await mkdtemp(path.join(tmpdir(), "nodepad-embeddings-")); try { await run(dir) } finally { await rm(dir, { recursive: true, force: true }) } }
@@ -152,7 +152,7 @@ test("heartbeat relevance prefilter retains research evidence but gates explicit
     w.researchResults = [{ id: "result", taskId: "task", providerId: "mock", title: "Result", excerpt: "independent finding", retrievedAt: new Date().toISOString(), relation: "supports" }]
     await store.saveWorkspace(w)
     const semantic = layer(subdir, { "Result: independent finding": [1, 0], [w.hypotheses[0].statement]: related ? [1, 0] : [0, 1] })
-    await runHeartbeat(store, w.id, { runId: "relevance", semanticLayer: semantic, providers: [], synthesisIds: [] })
+    await runHeartbeat(store, w.id, { adjudicator: fixtureAdjudicator, runId: "relevance", semanticLayer: semantic, providers: [], synthesisIds: [] })
     const after = await store.getWorkspace(w.id)
     assert.equal(after.evidence.length, 1)
     assert.equal(after.hypotheses[0].supportingEvidence.length, related ? 1 : 0)

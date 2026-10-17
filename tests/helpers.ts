@@ -3,3 +3,11 @@ import type { EvidenceRecord, HypothesisRecord } from "../lib/domain/types"
 export const evidence=(id:string,side:"support"|"contradict",sourceType=`source-${id}`,strength:1|2|3|4|5=5):EvidenceRecord=>({id,workspaceId:"fixture",claim:`${side} ${id}`,sourceType,sourceId:sourceType,strength,weight:1,stale:false,corroboratedBy:[],contradicts:side==="contradict"?["claim"]:[],ingestedAt:"2026-10-04T00:00:00.000Z",observedAt:"2026-10-04T00:00:00.000Z",evidenceType:"measured",provenance:{origin:"human",actorId:"test",createdAt:"2026-10-04T00:00:00.000Z"}})
 export const hypothesis=(supporting:string[]=[],contradicting:string[]=[]):HypothesisRecord=>({id:"h1",workspaceId:"fixture",title:"Users need this",statement:"Users need this",hypothesisType:"problem",derivedFrom:[],supportingEvidence:supporting,contradictingEvidence:contradicting,dependentAssumptions:[],alternativeHypotheses:[],impact:80,uncertainty:80,novelty:50,strategicImportance:80,evidenceScore:0,confidence:0,qualification:"unresolved",overlays:[],sourceDiversity:0,firstPartyWeight:0,behavioralWeight:0,freshnessScore:0,status:"active",researchGaps:[],createdAt:"2026-10-04T00:00:00.000Z",updatedAt:"2026-10-04T00:00:00.000Z",generation:{method:"test"}})
 export const fixture=()=>emptyWorkspace("fixture","Fixture")
+
+// Research fixture labels stand in for a validated interpreter, never a task-objective heuristic.
+export const fixtureAdjudicator: import("../lib/adjudication/provider").EvidenceAdjudicator = {
+  async adjudicate(input) {
+    const { uncertain } = await import("../lib/adjudication/openai")
+    return { ...uncertain(input), relation: input.researchResult?.relation || "neutral", relevance: 100, confidence: 100, directness: "direct", rationale: "Explicitly labelled test research observation.", status: "completed", fallback: false, provider: "mock-adjudicator", model: "fixture" }
+  },
+}

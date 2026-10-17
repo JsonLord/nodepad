@@ -6,6 +6,7 @@ export interface LLMMessage {
 }
 
 export interface LLMRequest {
+  responseFormat?: { type: string; json_schema?: { name: string; strict: boolean; schema: Record<string, unknown> } }
   messages: LLMMessage[]
   temperature?: number
   maxTokens?: number
@@ -205,6 +206,7 @@ export async function completeChat(
   const payload = {
     model: modelToUse,
     messages: request.messages,
+    ...(request.responseFormat ? { response_format: request.responseFormat } : {}),
     temperature: request.temperature ?? 0.2,
     ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
   }

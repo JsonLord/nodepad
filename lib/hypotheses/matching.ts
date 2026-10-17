@@ -11,12 +11,6 @@ export function hypothesisIdentity(proposal: Pick<HypothesisProposal, "statement
   return stableId("hyp", proposal.hypothesisType, normalizeHypothesisText(proposal.statement))
 }
 
-function similarity(a: string, b: string) {
-  const left = new Set(normalizeHypothesisText(a).split(" ").filter(Boolean))
-  const right = new Set(normalizeHypothesisText(b).split(" ").filter(Boolean))
-  const overlap = [...left].filter(word => right.has(word)).length
-  return overlap / Math.max(1, new Set([...left, ...right]).size)
-}
 export interface HypothesisMatchAssist { similarity?(a:string,b:string):number | undefined; classifyRelationship?(a:HypothesisRecord,b:HypothesisProposal): "same"|"alternative_to"|"supersedes"|"depends_on"|"counter_hypothesis"|"related" }
 
 function edge(workspace: Workspace, sourceId: string, targetId: string, type: KnowledgeEdge["type"], runId: string) {
@@ -53,13 +47,13 @@ export function matchOrCreateHypothesis(workspace: Workspace, proposal: Hypothes
       qualification: "unresolved", overlays: ["unresearched"], sourceDiversity: 0,
       firstPartyWeight: 0, behavioralWeight: 0, freshnessScore: 0, status: "active",
       researchGaps: ["Independent evidence", "Attempted falsification"], createdAt: now, updatedAt: now,
-      generation: { method: "synthesis", synthesisType: synthesisId, runId },
+      generation: { method: "synthesis", synthesisType: synthesisId, runId, reasoning: workspace.syntheses.find(s => s.id === synthesisId)?.provenance.reasoning },
     }
     hypothesis = scoreHypothesis(hypothesis, workspace.evidence)
     workspace.hypotheses.push(hypothesis)
     workspace.nodes.push({ id: hypothesis.id, workspaceId: workspace.id, kind: "hypothesis", title: hypothesis.title,
       body: hypothesis.statement, metadata: { hypothesisType: hypothesis.hypothesisType, proposalRationale: proposal.rationale },
-      provenance: { origin: "ai", actorId: "synthesis-runner", runId, createdAt: now }, createdAt: now, updatedAt: now, version: 1 })
+      provenance: { reasoning: hypothesis.generation.reasoning, origin: "ai", actorId: "synthesis-runner", runId, createdAt: now }, createdAt: now, updatedAt: now, version: 1 })
     workspace.events.push({ id: stableId("evt", "hypothesis.created", hypothesis.id), type: "hypothesis.created",
       workspaceId: workspace.id, entityId: hypothesis.id, at: now, actor: { actorType: "system", actorId: "hypothesis-matcher" }, runId })
     created = true
@@ -71,15 +65,11 @@ export function matchOrCreateHypothesis(workspace: Workspace, proposal: Hypothes
   edge(workspace, synthesisId, hypothesis.id, "implies", runId)
   for (const other of workspace.hypotheses) {
     if (other.id === hypothesis.id || other.hypothesisType !== hypothesis.hypothesisType) continue
-    const score = similarity(other.statement, hypothesis.statement)
     const classified=assist?.classifyRelationship?.(other,proposal)
     if(classified==="depends_on")edge(workspace,hypothesis.id,other.id,"depends_on",runId)
     else if(classified==="counter_hypothesis"||classified==="alternative_to")edge(workspace,hypothesis.id,other.id,"alternative_to",runId)
     else if (classified==="supersedes") edge(workspace, hypothesis.id, other.id, "supersedes", runId)
-    else if (score >= .35 && score < .75) {
-      edge(workspace, hypothesis.id, other.id, "alternative_to", runId)
-      hypothesis.alternativeHypotheses = [...new Set([...hypothesis.alternativeHypotheses, other.id])]
-    }
+
   }
   return { hypothesis, created }
 }

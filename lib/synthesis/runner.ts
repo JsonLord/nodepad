@@ -1,12 +1,17 @@
+import { createHash } from "node:crypto"
+import { routedSynthesisGenerator, synthesisMode, SYNTHESIS_VERSION } from "./llm"
+import { roleModel } from "../ai/reasoning"
+import type { ReasoningProvenance } from "../domain/types"
 import type { EvidenceRecord, HypothesisProposal, SynthesisResult, Workspace } from "../domain/types"
-import { contentHash, stableId } from "../domain/id"
+import { stableId } from "../domain/id"
 import { getSynthesisDefinition } from "./registry"
 import { selectSynthesisContext, type SynthesisScope } from "./context"
 import { runFamily } from "./families"
 
-export interface GeneratedSynthesis extends Partial<SynthesisResult> { hypotheses?: HypothesisProposal[] }
+export interface GeneratedSynthesis extends Partial<SynthesisResult> { reasoning?: ReasoningProvenance; hypotheses?: HypothesisProposal[] }
+export interface SynthesisGenerationInput { definition: NonNullable<ReturnType<typeof getSynthesisDefinition>>; evidence: EvidenceRecord[]; runId?: string; context?: { family: GeneratedSynthesis; supportIds: string[]; contradictionIds: string[]; themes: {id:string;title:string;memberEvidenceIds:unknown}[]; hypotheses: {id:string;statement:string;supportingEvidence:string[];contradictingEvidence:string[]}[]; unknowns: string[]; semanticContextIds: string[] } }
 export interface StructuredSynthesisGenerator {
-  generate(input: { definition: NonNullable<ReturnType<typeof getSynthesisDefinition>>; evidence: EvidenceRecord[] }): Promise<GeneratedSynthesis>
+  generate(input: SynthesisGenerationInput): Promise<GeneratedSynthesis>
 }
 
 const TYPE_BY_FAMILY: Record<string, string> = {
@@ -25,19 +30,31 @@ export class DeterministicSynthesisGenerator implements StructuredSynthesisGener
 
 export interface SynthesisExecution { result: SynthesisResult; proposals: HypothesisProposal[]; reused: boolean }
 export async function executeSynthesis(workspace: Workspace, type: string, runId: string,
-  generator: StructuredSynthesisGenerator = new DeterministicSynthesisGenerator(), scope: SynthesisScope = {}): Promise<SynthesisExecution> {
+  generator: StructuredSynthesisGenerator | undefined = undefined, scope: SynthesisScope = {}): Promise<SynthesisExecution> {
   const definition = getSynthesisDefinition(type)
   if (!definition) throw new Error(`Unknown synthesis ${type}`)
   const selected = selectSynthesisContext(workspace, scope)
   const evidence = selected.evidence
   if (evidence.length < definition.minEvidence) throw new Error(`${type} needs ${definition.minEvidence} evidence record(s)`)
-  const inputHash = contentHash({ type, evidence: evidence.map(item => ({
+  const inputHash = createHash("sha256").update(JSON.stringify({ type, routing: [SYNTHESIS_VERSION, synthesisMode(), roleModel("synthesis")], evidence: evidence.map(item => ({
     id: item.id, claim: item.claim, strength: item.strength, weight: item.weight, stale: item.stale,
-  })), supports: selected.supportIds, contradicts: selected.contradictionIds })
+  })), supports: selected.supportIds, contradicts: selected.contradictionIds })).digest("hex")
   const existing = workspace.syntheses.find(item => item.synthesisType === type && item.inputHash === inputHash)
   if (existing) return { result: existing, proposals: [], reused: true }
-  let generated = await generator.generate({ definition, evidence })
-  if (generator instanceof DeterministicSynthesisGenerator) { const family = runFamily(definition, evidence, selected.supportIds, selected.contradictionIds); generated = { ...generated, ...family } }
+  const deterministic = await new DeterministicSynthesisGenerator().generate({ definition, evidence })
+  const family = runFamily(definition, evidence, selected.supportIds, selected.contradictionIds)
+  let generated: GeneratedSynthesis = { ...deterministic, ...family }
+  const allowedIds = new Set(evidence.map(e => e.id))
+  const themes = workspace.nodes.filter(n => n.kind === "theme" && Array.isArray(n.metadata.memberEvidenceIds) && n.metadata.memberEvidenceIds.some(id => allowedIds.has(String(id)))).slice(0, 10).map(n => ({ id: n.id, title: n.title.slice(0,200), memberEvidenceIds: (n.metadata.memberEvidenceIds as string[]).filter(id => allowedIds.has(id)) }))
+  const hypotheses = workspace.hypotheses.filter(h => h.id === scope.hypothesisId || h.derivedFrom.some(id => allowedIds.has(id)) || [...h.supportingEvidence,...h.contradictingEvidence].some(id => allowedIds.has(id))).slice(0,10).map(h => ({id:h.id,statement:h.statement.slice(0,2000),supportingEvidence:h.supportingEvidence.filter(id=>allowedIds.has(id)),contradictingEvidence:h.contradictingEvidence.filter(id=>allowedIds.has(id))}))
+  const chosen = generator ?? routedSynthesisGenerator()
+  let fallback = false
+  if (chosen && !(chosen instanceof DeterministicSynthesisGenerator)) {
+    try { generated = await chosen.generate({ definition, evidence, runId, context: { family: generated, supportIds: selected.supportIds, contradictionIds: selected.contradictionIds, themes, hypotheses, unknowns: generated.unknowns || [], semanticContextIds: [...themes.map(t => t.id),...hypotheses.map(h => h.id)] } }) }
+    catch { fallback = true }
+  }
+  // Source derivation never grants validation authority to a newly generated hypothesis.
+  generated.hypotheses = (generated.hypotheses || []).map(p => ({ ...p, derivedFrom: p.derivedFrom.filter(id => allowedIds.has(id)), supportingEvidence: [], contradictingEvidence: [] }))
   const at = new Date().toISOString()
   const supports = selected.supportIds
   const contradicts = selected.contradictionIds
@@ -48,8 +65,8 @@ export async function executeSynthesis(workspace: Workspace, type: string, runId
     derivedFrom: evidence.map(item => item.id), supports, contradicts, unknowns: generated.unknowns ?? [],
     suggestedResearch: generated.suggestedResearch ?? [], generatedHypotheses: [],
     generationConfidence: Math.max(0, Math.min(100, generated.generationConfidence ?? 0)), createdAt: at,
-    runId, inputHash, status: contradicts.length ? "contested" : "supported",
-    provenance: { origin: "ai", actorId: "synthesis-runner", runId, createdAt: at, explanation: `Executed registry definition ${type}` },
+    runId, inputHash, status: contradicts.length ? "contested" : supports.length ? "supported" : "draft_ai",
+    provenance: { reasoning: generated.reasoning ?? { provider: "deterministic", model: "", promptVersion: SYNTHESIS_VERSION, schemaVersion: SYNTHESIS_VERSION, runId, createdAt: at, sourceEvidenceIds: evidence.map(e=>e.id), semanticContextIds: [...themes.map(t=>t.id),...hypotheses.map(h=>h.id)], fallback, escalated: false }, origin: generated.reasoning ? "ai" : "system", actorId: "synthesis-runner", runId, createdAt: at, explanation: `Executed registry definition ${type}` },
   }
   workspace.syntheses.push(result)
   workspace.nodes.push({ id, workspaceId: workspace.id, kind: "insight", title: result.title, body: result.statement,

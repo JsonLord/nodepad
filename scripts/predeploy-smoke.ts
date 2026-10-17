@@ -10,7 +10,7 @@ export const FIXTURES = { NODEPAD_LOGIN_KEY: "SUPER_SECRET_LOGIN_928374", NODEPA
 export function isolatedEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env }
   for (const name of Object.keys(env)) if (/^(NODEPAD_|OPENAI_|GH_TOKEN$|GITHUB_TOKEN$|HF_TOKEN$|NEXT_PUBLIC_.*(?:KEY|TOKEN|SECRET))/.test(name)) delete env[name]
-  return { ...env, ...FIXTURES, NODE_ENV: "production", NODEPAD_GITHUB_SYNC: "false", NODEPAD_MAX_RESEARCH_TASKS_PER_HEARTBEAT: "0", NODEPAD_RESEARCH_ENABLED: "false", NEXT_TELEMETRY_DISABLED: "1" }
+  return { ...env, ...FIXTURES, NODE_ENV: "production", NODEPAD_GITHUB_SYNC: "false", NODEPAD_MAX_RESEARCH_TASKS_PER_HEARTBEAT: "0", NODEPAD_RESEARCH_ENABLED: "false", NODEPAD_SYNTHESIS_MODE: "deterministic", NEXT_TELEMETRY_DISABLED: "1" }
 }
 const secretSafe = (value: string) => Object.values(FIXTURES).every(secret => !value.includes(secret))
 const listen = (server: Server, host = "127.0.0.1") => new Promise<number>((resolve, reject) => { server.once("error", reject); server.listen(0, host, () => resolve((server.address() as { port: number }).port)) })
@@ -114,7 +114,7 @@ export async function smoke(docker = false) {
     })
     await section("Route protection", async () => {
       const routes: [string, string, unknown?][] = [
-        ["/api/v1/workspaces", "GET"], ["/api/v1/portfolio", "GET"], ["/api/v1/llm/status", "GET"], ["/api/v1/llm/models", "GET"], ["/api/v1/embeddings/status", "GET"],
+        ["/api/v1/workspaces", "GET"], ["/api/v1/portfolio", "GET"], ["/api/v1/llm/status", "GET"], ["/api/v1/llm/models", "GET"], ["/api/v1/embeddings/status", "GET"], ["/api/v1/workspaces/matrix/adjudications", "GET"],
         ...["context", "graph", "evidence", "hypotheses", "brain", "events"].map(name => [`/api/v1/workspaces/matrix/${name}`, "GET"] as [string, string]),
         ["/api/v1/workspaces/matrix/evidence", "POST", { claim: "Matrix evidence" }], ["/api/v1/workspaces/matrix/heartbeat", "POST", { runId: "matrix" }], ["/api/v1/workspaces/matrix/brain/export", "POST", {}],
       ]

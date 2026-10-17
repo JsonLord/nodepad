@@ -12,6 +12,8 @@ Browser access requires `NODEPAD_LOGIN_KEY`; machine clients use the separate `N
 
 Optional: [EmbeddingGemma 2 via Ollama](docs/EMBEDDINGS.md) improves duplicate detection, themes and relevance. It falls back to deterministic lexical logic when unavailable and never controls qualification.
 
+Stage 2: [LLM evidence adjudication and synthesis routing](docs/REASONING.md) adds audited interpretation while deterministic code retains scoring and qualification authority.
+
 ## Evidence brain quick start
 
 ```bash

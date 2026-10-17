@@ -9,3 +9,7 @@ Research evidence classification is conservative: unknown external text defaults
 ## Optional embeddings
 
 See [semantic layer](EMBEDDINGS.md) for Ollama configuration, runtime-only cache, conservative duplicate aliases and source preservation, stable theme membership/centroids, and relevance prefilter behavior. Disabled or unavailable embeddings retain deterministic lexical processing. Similarity never assigns support/contradiction, scores, confidence, qualification, or brain promotion.
+
+## Audited reasoning
+
+Research relations now pass through [structured adjudication](REASONING.md); task objectives do not assign support or contradiction. Adjudications persist with provenance and transition causality, while new synthesis proposals have no automatic validation evidence. Optional role routing and escalation preserve deterministic scoring and safe fallback.

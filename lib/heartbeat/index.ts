@@ -1,7 +1,11 @@
 import { createSemanticLayer, type SemanticLayer } from "../embeddings"
 import { dedupeEvidence } from "../embeddings/dedupe"
 import { semanticClusters } from "../embeddings/themes"
-import { relevancePrefilter } from "../embeddings/relevance"
+import { OpenAiEvidenceAdjudicator } from "../adjudication/openai"
+import { adjudicateEvidence } from "../adjudication/pipeline"
+import type { EvidenceAdjudicator } from "../adjudication/provider"
+import { routedSynthesisGenerator } from "../synthesis/llm"
+import type { StructuredSynthesisGenerator } from "../synthesis/runner"
 import type { EvidenceRecord, HeartbeatSummary, HypothesisProposal, KnowledgeEdgeType, Workspace } from "../domain/types"
 import type { NodepadStore } from "../persistence/store"
 import { stableId } from "../domain/id"
@@ -63,13 +67,13 @@ function appendEvent(workspace: Workspace, type: string, entityId: string, runId
   if (!workspace.events.some(event => event.id === id)) workspace.events.push({ id, type, workspaceId: workspace.id, entityId,
     at: new Date().toISOString(), actor: { actorType: "system", actorId: "heartbeat" }, runId, before, after })
 }
-async function ingestResearchResults(workspace: Workspace, runId: string, layer: SemanticLayer) {
+async function ingestResearchResults(workspace: Workspace, runId: string, layer: SemanticLayer, adjudicator: EvidenceAdjudicator | undefined, now: number) {
   let count = 0
   for (const result of workspace.researchResults) {
     const task = workspace.researchTasks.find(item => item.id === result.taskId)
     if (!task) continue
     const evidenceId = stableId("ev", result.taskId, result.providerId, result.url ?? result.title)
-    let evidence = workspace.evidence.find(item => item.id === evidenceId)
+    let evidence = workspace.evidence.find(item => item.id === evidenceId || item.sourceRef === result.id || item.aliases?.includes(evidenceId) || item.duplicateRecords?.some(original => original.sourceRef === result.id))
     if (!evidence) {
       const classification = classifyArtifact(result, result.providerId)
       evidence = { id: evidenceId, workspaceId: workspace.id, claim: `${result.title}: ${result.excerpt}`, sourceType: result.providerId,
@@ -87,12 +91,7 @@ async function ingestResearchResults(workspace: Workspace, runId: string, layer:
     ensureEdge(workspace, task.id, result.id, "produced", runId); ensureEdge(workspace, result.id, linkedEvidence.id, "produced", runId)
     for (const hypothesisId of task.hypothesisIds) {
       const hypothesis = workspace.hypotheses.find(item => item.id === hypothesisId); if (!hypothesis) continue
-      const relevance = await relevancePrefilter(linkedEvidence.claim, hypothesis.statement, layer)
-      result.metadata = { ...result.metadata, semanticRelevance: { ...(result.metadata?.semanticRelevance as object || {}), [hypothesis.id]: relevance.score ?? null } }
-      if (!relevance.shouldAdjudicate) continue
-      const relation = result.relation ?? (task.objective === "support" ? "supports" : task.objective === "disconfirm" ? "contradicts" : "neutral")
-      if (relation === "supports") { hypothesis.supportingEvidence = [...new Set([...hypothesis.supportingEvidence, linkedEvidence.id])]; ensureEdge(workspace, linkedEvidence.id, hypothesis.id, "supports", runId) }
-      if (relation === "contradicts") { hypothesis.contradictingEvidence = [...new Set([...hypothesis.contradictingEvidence, linkedEvidence.id])]; ensureEdge(workspace, linkedEvidence.id, hypothesis.id, "contradicts", runId) }
+      await adjudicateEvidence(workspace, hypothesis, linkedEvidence, { result, task, runId, layer, adjudicator, now })
     }
     task.status = "complete"; appendEvent(workspace, "research_task.completed", task.id, runId)
   }
@@ -118,13 +117,15 @@ function updateStaleness(workspace: Workspace, runId: string, now: Date) {
   return queued
 }
 
-export interface HeartbeatOptions { runId?: string; backup?: BackupRemote; now?: Date; providers?: ResearchProvider[]; synthesisIds?: string[]; semanticLayer?: SemanticLayer }
+export interface HeartbeatOptions { runId?: string; backup?: BackupRemote; now?: Date; providers?: ResearchProvider[]; synthesisIds?: string[]; semanticLayer?: SemanticLayer; adjudicator?: EvidenceAdjudicator; synthesisGenerator?: StructuredSynthesisGenerator }
 export async function runHeartbeat(store: NodepadStore, workspaceId: string, options: HeartbeatOptions = {}): Promise<HeartbeatSummary> {
   const now = options.now ?? new Date(), startedAt = nowIso(now), runId = options.runId ?? stableId("hb", workspaceId, startedAt.slice(0, 16)), owner = `${process.pid}:${runId}`
   const blank = { runId, workspaceId, startedAt, completedAt: nowIso(now), status: "skipped" as const, phases: [], newEvidence: 0, synthesesGenerated: 0, hypothesesChanged: 0, researchTasksQueued: 0, promoted: 0, demoted: 0 }
   if (!await store.acquireLease(workspaceId, owner, 300000)) return blank
   try {
     const workspace = await store.getWorkspace(workspaceId)
+    const adjudicator = options.adjudicator ?? new OpenAiEvidenceAdjudicator()
+    const synthesisGenerator = options.synthesisGenerator ?? routedSynthesisGenerator()
     const layer = options.semanticLayer ?? createSemanticLayer((store as {root?: string}).root)
     if (workspace.events.some(event => event.type === "heartbeat.completed" && event.runId === runId)) return blank
     const summary: HeartbeatSummary = { ...blank, status: "running", completedAt: undefined }
@@ -138,7 +139,7 @@ export async function runHeartbeat(store: NodepadStore, workspaceId: string, opt
       if (phase === "dedupe") dedupeEvidence(workspace, await layer.similarity(workspace.evidence.map(e => e.claim)))
       if (phase === "themes") await refreshThemes(workspace, runId, layer)
       if (phase === "syntheses" && workspace.evidence.length) for (const id of options.synthesisIds ?? SYNTHESIS_IDS) {
-        const execution = await executeSynthesis(workspace, id, runId); if (!execution.reused) summary.synthesesGenerated++
+        const execution = await executeSynthesis(workspace, id, runId, synthesisGenerator); if (!execution.reused) summary.synthesesGenerated++
         if (!execution.reused) appendEvent(workspace, "synthesis.generated", execution.result.id, runId)
         proposals.push(...execution.proposals.map(proposal => ({ synthesisId: execution.result.id, proposal })))
       }
@@ -169,7 +170,7 @@ export async function runHeartbeat(store: NodepadStore, workspaceId: string, opt
         const due = workspace.researchTasks.filter(task => task.status === "queued" && task.attempts < task.maxAttempts && (!task.notBefore || Date.parse(task.notBefore) <= now.getTime())).sort((a, b) => b.priority - a.priority).slice(0, limit)
         for (const task of due) { task.status = "running"; task.attempts++; const results = await executeResearch(task, options.providers ?? defaultProviders()); for (const result of results) if (!workspace.researchResults.some(item => item.id === result.id)) workspace.researchResults.push(result); task.status = results.length ? "running" : task.attempts >= task.maxAttempts ? "failed" : "queued" }
       }
-      if (phase === "result_ingestion") summary.newEvidence += await ingestResearchResults(workspace, runId, layer)
+      if (phase === "result_ingestion") summary.newEvidence += await ingestResearchResults(workspace, runId, layer, adjudicator, now.getTime())
       if (phase === "graph_maintenance") { const nodes = proposalsAsNodes(workspace, garden(workspace), runId); for (const node of nodes) if (!workspace.nodes.some(item => item.id === node.id)) workspace.nodes.push(node) }
       if (phase === "brain_promotion_demotion") Object.assign(summary, updateBrain(workspace, runId))
       if (phase === "staleness") {
