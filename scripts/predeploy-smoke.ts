@@ -114,7 +114,7 @@ export async function smoke(docker = false) {
     })
     await section("Route protection", async () => {
       const routes: [string, string, unknown?][] = [
-        ["/api/v1/workspaces", "GET"], ["/api/v1/portfolio", "GET"], ["/api/v1/llm/status", "GET"], ["/api/v1/llm/models", "GET"],
+        ["/api/v1/workspaces", "GET"], ["/api/v1/portfolio", "GET"], ["/api/v1/llm/status", "GET"], ["/api/v1/llm/models", "GET"], ["/api/v1/embeddings/status", "GET"],
         ...["context", "graph", "evidence", "hypotheses", "brain", "events"].map(name => [`/api/v1/workspaces/matrix/${name}`, "GET"] as [string, string]),
         ["/api/v1/workspaces/matrix/evidence", "POST", { claim: "Matrix evidence" }], ["/api/v1/workspaces/matrix/heartbeat", "POST", { runId: "matrix" }], ["/api/v1/workspaces/matrix/brain/export", "POST", {}],
       ]
