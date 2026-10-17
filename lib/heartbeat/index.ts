@@ -1,3 +1,7 @@
+import { createSemanticLayer, type SemanticLayer } from "../embeddings"
+import { dedupeEvidence } from "../embeddings/dedupe"
+import { semanticClusters } from "../embeddings/themes"
+import { relevancePrefilter } from "../embeddings/relevance"
 import type { EvidenceRecord, HeartbeatSummary, HypothesisProposal, KnowledgeEdgeType, Workspace } from "../domain/types"
 import type { NodepadStore } from "../persistence/store"
 import { stableId } from "../domain/id"
@@ -9,7 +13,6 @@ import { updateBrain } from "../brain/export"
 import { validateWorkspace } from "../validation"
 import { backupWorkspace, type BackupRemote } from "../github-sync/backup"
 import { classifyArtifact, defaultProviders, executeResearch, type ResearchProvider } from "../research/providers"
-import { clusterEvidence } from "../themes/clustering"
 
 const PHASES = ["ingest", "dedupe", "evidence_quality", "themes", "syntheses", "hypothesis_generation", "hypothesis_matching", "rescore", "gap_planning", "targeted_research", "result_ingestion", "second_rescore", "graph_maintenance", "brain_promotion_demotion", "staleness", "github_backup", "event_summary"]
 const SYNTHESIS_IDS = ["S012", "S031", "S038", "S051", "S091", "S121", "S122", "S124", "S127", "S128", "S130"]
@@ -25,32 +28,28 @@ function ensureEdge(workspace: Workspace, sourceId: string, targetId: string, ty
   if (!workspace.edges.some(edge => edge.id === id)) workspace.edges.push({ id, workspaceId: workspace.id, sourceId, targetId, type,
     provenance: { origin: "system", actorId: "heartbeat", runId, createdAt: new Date().toISOString() }, createdAt: new Date().toISOString() })
 }
-function evidenceIdentity(item: EvidenceRecord) {
-  return stableId("evidence-identity", item.sourceId ?? "", item.sourceRef ?? item.sourceUrl ?? "", item.claim.toLowerCase().replace(/\s+/g, " ").trim())
-}
-function dedupe(workspace: Workspace) {
-  const canonical = new Map<string, EvidenceRecord>(), replacements = new Map<string, string>()
-  for (const item of workspace.evidence) {
-    const identity = evidenceIdentity(item), existing = canonical.get(identity)
-    if (existing) { replacements.set(item.id, existing.id); existing.corroboratedBy = [...new Set([...existing.corroboratedBy, item.id, ...item.corroboratedBy])] }
-    else canonical.set(identity, item)
-  }
-  workspace.evidence = [...canonical.values()]
-  for (const hypothesis of workspace.hypotheses) {
-    hypothesis.supportingEvidence = [...new Set(hypothesis.supportingEvidence.map(id => replacements.get(id) ?? id))]
-    hypothesis.contradictingEvidence = [...new Set(hypothesis.contradictingEvidence.map(id => replacements.get(id) ?? id))]
-  }
-  const results = new Map<string, Workspace["researchResults"][number]>()
-  for (const result of workspace.researchResults) results.set(stableId("result-identity", result.taskId, result.providerId, result.url ?? result.title), result)
-  workspace.researchResults = [...results.values()]
-}
-function refreshThemes(workspace: Workspace, runId: string) {
+async function refreshThemes(workspace: Workspace, runId: string, layer: SemanticLayer) {
+  const vectors = await layer.vectors(workspace.evidence.map(e => e.claim))
   for (const evidence of workspace.evidence) ensureNode(workspace, evidence.id, "evidence", evidence.claim.slice(0, 100), evidence.claim, runId, { strength: evidence.strength })
-  for (const cluster of clusterEvidence(workspace.evidence)) {
+  const clusters = semanticClusters(workspace.evidence, vectors, workspace)
+  const activeKeys = new Set(clusters.map(c => c.key))
+  for (const node of workspace.nodes.filter(n => n.kind === "theme" && Array.isArray(n.metadata.memberEvidenceIds) && !activeKeys.has(String(n.metadata.clusterKey)))) {
+    if ((node.metadata.memberEvidenceIds as string[]).length) {
+      node.metadata = { ...node.metadata, memberEvidenceIds: [], centroid: undefined }
+      node.updatedAt = new Date().toISOString(); node.version++
+      workspace.edges = workspace.edges.filter(e => e.targetId !== node.id || e.type !== "implies")
+    }
+  }
+  for (const cluster of clusters) {
     const id = stableId("theme", workspace.id, cluster.key), existing = workspace.nodes.find(node => node.id === id)
     const body = `${cluster.evidence.length} evidence item(s) in ${cluster.class}`
     if (existing) { if (existing.body !== body) { existing.body = body; existing.updatedAt = new Date().toISOString(); existing.version++ } }
     else ensureNode(workspace, id, "theme", cluster.label, body, runId, { clusterKey: cluster.key, themeClass: cluster.class })
+    const theme = workspace.nodes.find(node => node.id === id)!
+    const metadata = { ...theme.metadata, memberEvidenceIds: cluster.evidence.map(e => e.id), semantic: !!cluster.centroid, ...(cluster.centroid ? { centroid: cluster.centroid } : {}) }
+    if (JSON.stringify(metadata) !== JSON.stringify(theme.metadata)) { theme.metadata = metadata; theme.updatedAt = new Date().toISOString(); theme.version++ }
+    // Membership is retrieval metadata, not an epistemic support relation.
+    workspace.edges = workspace.edges.filter(e => e.targetId !== id || e.type !== "implies" || cluster.evidence.some(item => item.id === e.sourceId))
     for (const item of cluster.evidence) ensureEdge(workspace, item.id, id, "implies", runId)
   }
   for (const synthesis of workspace.syntheses) {
@@ -64,7 +63,7 @@ function appendEvent(workspace: Workspace, type: string, entityId: string, runId
   if (!workspace.events.some(event => event.id === id)) workspace.events.push({ id, type, workspaceId: workspace.id, entityId,
     at: new Date().toISOString(), actor: { actorType: "system", actorId: "heartbeat" }, runId, before, after })
 }
-function ingestResearchResults(workspace: Workspace, runId: string) {
+async function ingestResearchResults(workspace: Workspace, runId: string, layer: SemanticLayer) {
   let count = 0
   for (const result of workspace.researchResults) {
     const task = workspace.researchTasks.find(item => item.id === result.taskId)
@@ -88,6 +87,9 @@ function ingestResearchResults(workspace: Workspace, runId: string) {
     ensureEdge(workspace, task.id, result.id, "produced", runId); ensureEdge(workspace, result.id, linkedEvidence.id, "produced", runId)
     for (const hypothesisId of task.hypothesisIds) {
       const hypothesis = workspace.hypotheses.find(item => item.id === hypothesisId); if (!hypothesis) continue
+      const relevance = await relevancePrefilter(linkedEvidence.claim, hypothesis.statement, layer)
+      result.metadata = { ...result.metadata, semanticRelevance: { ...(result.metadata?.semanticRelevance as object || {}), [hypothesis.id]: relevance.score ?? null } }
+      if (!relevance.shouldAdjudicate) continue
       const relation = result.relation ?? (task.objective === "support" ? "supports" : task.objective === "disconfirm" ? "contradicts" : "neutral")
       if (relation === "supports") { hypothesis.supportingEvidence = [...new Set([...hypothesis.supportingEvidence, linkedEvidence.id])]; ensureEdge(workspace, linkedEvidence.id, hypothesis.id, "supports", runId) }
       if (relation === "contradicts") { hypothesis.contradictingEvidence = [...new Set([...hypothesis.contradictingEvidence, linkedEvidence.id])]; ensureEdge(workspace, linkedEvidence.id, hypothesis.id, "contradicts", runId) }
@@ -116,13 +118,14 @@ function updateStaleness(workspace: Workspace, runId: string, now: Date) {
   return queued
 }
 
-export interface HeartbeatOptions { runId?: string; backup?: BackupRemote; now?: Date; providers?: ResearchProvider[]; synthesisIds?: string[] }
+export interface HeartbeatOptions { runId?: string; backup?: BackupRemote; now?: Date; providers?: ResearchProvider[]; synthesisIds?: string[]; semanticLayer?: SemanticLayer }
 export async function runHeartbeat(store: NodepadStore, workspaceId: string, options: HeartbeatOptions = {}): Promise<HeartbeatSummary> {
   const now = options.now ?? new Date(), startedAt = nowIso(now), runId = options.runId ?? stableId("hb", workspaceId, startedAt.slice(0, 16)), owner = `${process.pid}:${runId}`
   const blank = { runId, workspaceId, startedAt, completedAt: nowIso(now), status: "skipped" as const, phases: [], newEvidence: 0, synthesesGenerated: 0, hypothesesChanged: 0, researchTasksQueued: 0, promoted: 0, demoted: 0 }
   if (!await store.acquireLease(workspaceId, owner, 300000)) return blank
   try {
     const workspace = await store.getWorkspace(workspaceId)
+    const layer = options.semanticLayer ?? createSemanticLayer((store as {root?: string}).root)
     if (workspace.events.some(event => event.type === "heartbeat.completed" && event.runId === runId)) return blank
     const summary: HeartbeatSummary = { ...blank, status: "running", completedAt: undefined }
     let proposals: Array<{ synthesisId: string; proposal: HypothesisProposal }> = []
@@ -132,21 +135,24 @@ export async function runHeartbeat(store: NodepadStore, workspaceId: string, opt
         for (const evidence of workspace.evidence) ensureNode(workspace, evidence.id, "evidence", evidence.claim.slice(0, 100), evidence.claim, runId)
         for (const hypothesis of workspace.hypotheses) ensureNode(workspace, hypothesis.id, "hypothesis", hypothesis.title, hypothesis.statement, runId, { hypothesisType: hypothesis.hypothesisType })
       }
-      if (phase === "dedupe") dedupe(workspace)
-      if (phase === "themes") refreshThemes(workspace, runId)
+      if (phase === "dedupe") dedupeEvidence(workspace, await layer.similarity(workspace.evidence.map(e => e.claim)))
+      if (phase === "themes") await refreshThemes(workspace, runId, layer)
       if (phase === "syntheses" && workspace.evidence.length) for (const id of options.synthesisIds ?? SYNTHESIS_IDS) {
         const execution = await executeSynthesis(workspace, id, runId); if (!execution.reused) summary.synthesesGenerated++
         if (!execution.reused) appendEvent(workspace, "synthesis.generated", execution.result.id, runId)
         proposals.push(...execution.proposals.map(proposal => ({ synthesisId: execution.result.id, proposal })))
       }
       if (phase === "hypothesis_generation") {
-        refreshThemes(workspace, runId)
+        await refreshThemes(workspace, runId, layer)
         for (const item of proposals) item.proposal.derivedFrom = [...new Set([...item.proposal.derivedFrom, item.synthesisId])]
       }
-      if (phase === "hypothesis_matching") for (const item of proposals) {
-        const matched = matchOrCreateHypothesis(workspace, item.proposal, item.synthesisId, runId)
-        const synthesis = workspace.syntheses.find(value => value.id === item.synthesisId)!
-        synthesis.generatedHypotheses = [...new Set([...synthesis.generatedHypotheses, matched.hypothesis.id])]
+      if (phase === "hypothesis_matching") {
+        const similarity = await layer.similarity([...workspace.hypotheses.map(h => h.statement), ...proposals.map(p => p.proposal.statement)])
+        for (const item of proposals) {
+          const matched = matchOrCreateHypothesis(workspace, item.proposal, item.synthesisId, runId, { similarity })
+          const synthesis = workspace.syntheses.find(value => value.id === item.synthesisId)!
+          synthesis.generatedHypotheses = [...new Set([...synthesis.generatedHypotheses, matched.hypothesis.id])]
+        }
       }
       if (phase === "rescore" || phase === "second_rescore") workspace.hypotheses = workspace.hypotheses.map(hypothesis => {
         const before = { evidenceScore: hypothesis.evidenceScore, qualification: hypothesis.qualification }
@@ -163,7 +169,7 @@ export async function runHeartbeat(store: NodepadStore, workspaceId: string, opt
         const due = workspace.researchTasks.filter(task => task.status === "queued" && task.attempts < task.maxAttempts && (!task.notBefore || Date.parse(task.notBefore) <= now.getTime())).sort((a, b) => b.priority - a.priority).slice(0, limit)
         for (const task of due) { task.status = "running"; task.attempts++; const results = await executeResearch(task, options.providers ?? defaultProviders()); for (const result of results) if (!workspace.researchResults.some(item => item.id === result.id)) workspace.researchResults.push(result); task.status = results.length ? "running" : task.attempts >= task.maxAttempts ? "failed" : "queued" }
       }
-      if (phase === "result_ingestion") summary.newEvidence += ingestResearchResults(workspace, runId)
+      if (phase === "result_ingestion") summary.newEvidence += await ingestResearchResults(workspace, runId, layer)
       if (phase === "graph_maintenance") { const nodes = proposalsAsNodes(workspace, garden(workspace), runId); for (const node of nodes) if (!workspace.nodes.some(item => item.id === node.id)) workspace.nodes.push(node) }
       if (phase === "brain_promotion_demotion") Object.assign(summary, updateBrain(workspace, runId))
       if (phase === "staleness") {

@@ -1,3 +1,5 @@
+import { threshold } from "../embeddings/provider"
+import { duplicateCompatible } from "../embeddings/similarity"
 import type { HypothesisProposal, HypothesisRecord, KnowledgeEdge, Workspace } from "../domain/types"
 import { scoreHypothesis } from "../scoring/hypothesis"
 import { stableId } from "../domain/id"
@@ -15,7 +17,7 @@ function similarity(a: string, b: string) {
   const overlap = [...left].filter(word => right.has(word)).length
   return overlap / Math.max(1, new Set([...left, ...right]).size)
 }
-export interface HypothesisMatchAssist { similarity?(a:string,b:string):number; classifyRelationship?(a:HypothesisRecord,b:HypothesisProposal): "same"|"alternative_to"|"supersedes"|"depends_on"|"counter_hypothesis"|"related" }
+export interface HypothesisMatchAssist { similarity?(a:string,b:string):number | undefined; classifyRelationship?(a:HypothesisRecord,b:HypothesisProposal): "same"|"alternative_to"|"supersedes"|"depends_on"|"counter_hypothesis"|"related" }
 
 function edge(workspace: Workspace, sourceId: string, targetId: string, type: KnowledgeEdge["type"], runId: string) {
   const id = stableId("edge", sourceId, type, targetId)
@@ -35,7 +37,7 @@ export function matchOrCreateHypothesis(workspace: Workspace, proposal: Hypothes
       (proposal.title !== undefined && normalizeHypothesisText(item.title) === normalizeHypothesisText(proposal.title))
     )),
   )
-  if (!hypothesis && assist?.similarity) hypothesis = workspace.hypotheses.find(item => item.hypothesisType === proposal.hypothesisType && assist.similarity!(item.statement, proposal.statement) >= .92)
+  if (!hypothesis && assist?.similarity) hypothesis = workspace.hypotheses.find(item => item.hypothesisType === proposal.hypothesisType && duplicateCompatible(item.statement, proposal.statement) && (assist.similarity!(item.statement, proposal.statement) ?? -1) >= threshold("HYPOTHESIS_DUP", .90))
   let created = false
   const now = new Date().toISOString()
   if (!hypothesis) {
@@ -73,7 +75,7 @@ export function matchOrCreateHypothesis(workspace: Workspace, proposal: Hypothes
     const classified=assist?.classifyRelationship?.(other,proposal)
     if(classified==="depends_on")edge(workspace,hypothesis.id,other.id,"depends_on",runId)
     else if(classified==="counter_hypothesis"||classified==="alternative_to")edge(workspace,hypothesis.id,other.id,"alternative_to",runId)
-    else if (classified==="supersedes"||(score >= .75 && other.createdAt < hypothesis.createdAt)) edge(workspace, hypothesis.id, other.id, "supersedes", runId)
+    else if (classified==="supersedes") edge(workspace, hypothesis.id, other.id, "supersedes", runId)
     else if (score >= .35 && score < .75) {
       edge(workspace, hypothesis.id, other.id, "alternative_to", runId)
       hypothesis.alternativeHypotheses = [...new Set([...hypothesis.alternativeHypotheses, other.id])]

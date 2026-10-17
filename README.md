@@ -10,6 +10,8 @@ app_port: 7860
 
 Browser access requires `NODEPAD_LOGIN_KEY`; machine clients use the separate `NODEPAD_API_KEY`. Configure both as deployment secrets. See [authentication setup](docs/AUTHENTICATION.md).
 
+Optional: [EmbeddingGemma 2 via Ollama](docs/EMBEDDINGS.md) improves duplicate detection, themes and relevance. It falls back to deterministic lexical logic when unavailable and never controls qualification.
+
 ## Evidence brain quick start
 
 ```bash

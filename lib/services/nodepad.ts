@@ -1,3 +1,5 @@
+import { createSemanticLayer, embeddingHealth } from "../embeddings"
+import { relevancePrefilter } from "../embeddings/relevance"
 import type { ActorContext, EvidenceRecord, HypothesisRecord, KnowledgeEdgeType, ResearchResult } from "../domain/types"
 import type { NodepadStore } from "../persistence/store"
 import { newId, stableId } from "../domain/id"
@@ -10,7 +12,7 @@ export class NodepadService {
   constructor(public store: NodepadStore) {}
   async workspaces() { return this.store.listWorkspaces() }
   async graph(id: string) { const workspace = await this.store.getWorkspace(id); return { nodes: workspace.nodes, edges: workspace.edges } }
-  async context(id: string) { const workspace = await this.store.getWorkspace(id); const githubConfigured=Boolean(process.env.NODEPAD_GITHUB_TOKEN&&process.env.NODEPAD_GITHUB_REPOSITORY),enabled=process.env.NODEPAD_GITHUB_SYNC==="true",mode=githubConfigured?"github":process.env.NODEPAD_BACKUP_REPO?"local":"none";const status=!enabled?"backup_disabled":mode==="github"?(workspace.backup?.status??"github_connected"):mode==="local"?(workspace.backup?.status??"local_backup_only"):"github_not_configured";return { id: workspace.id, name: workspace.name, revision: workspace.revision, heartbeat: workspace.heartbeat, backup: {...workspace.backup,mode,status} } }
+  async context(id: string) { const workspace = await this.store.getWorkspace(id); const githubConfigured=Boolean(process.env.NODEPAD_GITHUB_TOKEN&&process.env.NODEPAD_GITHUB_REPOSITORY),enabled=process.env.NODEPAD_GITHUB_SYNC==="true",mode=githubConfigured?"github":process.env.NODEPAD_BACKUP_REPO?"local":"none";const status=!enabled?"backup_disabled":mode==="github"?(workspace.backup?.status??"github_connected"):mode==="local"?(workspace.backup?.status??"local_backup_only"):"github_not_configured";return { embeddings: await embeddingHealth(), id: workspace.id, name: workspace.name, revision: workspace.revision, heartbeat: workspace.heartbeat, backup: {...workspace.backup,mode,status} } }
   async addEvidence(id: string, input: import("../domain/types").AddEvidenceInput, actor: ActorContext, key?: string) {
     const workspace = await this.store.getWorkspace(id), at = new Date().toISOString()
 
@@ -86,8 +88,10 @@ export class NodepadService {
   }
   async synthesize(id: string, type: string, actor: ActorContext, runId = newId("run")) {
     const workspace = await this.store.getWorkspace(id), execution = await executeSynthesis(workspace, type, runId)
+    const layer = createSemanticLayer((this.store as {root?: string}).root)
+    const similarity = await layer.similarity([...workspace.hypotheses.map(h => h.statement), ...execution.proposals.map(p => p.statement)])
     for (const proposal of execution.proposals) {
-      const matched = matchOrCreateHypothesis(workspace, proposal, execution.result.id, runId)
+      const matched = matchOrCreateHypothesis(workspace, proposal, execution.result.id, runId, { similarity })
       execution.result.generatedHypotheses = [...new Set([...execution.result.generatedHypotheses, matched.hypothesis.id])]
     }
     workspace.events.push({ id: stableId("evt", "synthesis.generated", execution.result.id), type: "synthesis.generated", workspaceId: id, entityId: execution.result.id, at: new Date().toISOString(), actor, runId })
@@ -103,12 +107,16 @@ export class NodepadService {
     const evidenceId = stableId("ev", taskId, input.providerId, input.url ?? input.title)
     const relation = result.relation ?? (task.objective === "support" ? "supports" : task.objective === "disconfirm" ? "contradicts" : "neutral");
 
+    const target = workspace.hypotheses.find(h => h.id === task.hypothesisIds[0])
+    const relevance = target ? await relevancePrefilter(`${input.title}: ${input.excerpt}`, target.statement, createSemanticLayer((this.store as {root?: string}).root)) : { shouldAdjudicate: true, score: undefined }
+    if (target) result.metadata = { ...result.metadata, semanticRelevance: { [target.id]: relevance.score ?? null } }
+
     // Defer saving until after evidence is added to avoid writing twice or losing state
     await this.store.saveWorkspace(workspace);
 
     await this.addEvidence(id, {
       claim: `${input.title}: ${input.excerpt}`,
-      hypothesisId: task.hypothesisIds[0], // Assuming single primary hypothesis for research task in this refactor, but research task supports multiple.
+      hypothesisId: relevance.shouldAdjudicate ? task.hypothesisIds[0] : undefined,
       relation,
       sourceType: input.providerId,
       sourceRef: resultId,
