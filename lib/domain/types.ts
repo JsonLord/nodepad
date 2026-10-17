@@ -26,6 +26,26 @@ export interface HypothesisRecord { id: string; workspaceId: string; title: stri
 export interface SynthesisResult { id: string; synthesisType: string; workspaceId: string; title: string; statement: string; rationale: string; derivedFrom: string[]; supports: string[]; contradicts: string[]; unknowns: string[]; suggestedResearch: string[]; generatedHypotheses: string[]; generationConfidence: number; createdAt: string; runId: string; inputHash: string; status: "draft_ai"|"supported"|"contested"|"stale"|"superseded"|"promoted"; provenance: Provenance }
 export interface HypothesisProposal { statement: string; title?: string; hypothesisType: string; derivedFrom: string[]; supportingEvidence?: string[]; contradictingEvidence?: string[]; dependentAssumptions?: string[]; strategicImportance?: number; impact?: number; uncertainty?: number; rationale?: string }
 export type EvidenceRelation = "supports" | "contradicts" | "neutral"
+
+export interface AddEvidenceInput {
+  claim: string;
+  hypothesisId?: string;
+  relation?: EvidenceRelation;
+  sourceType?: string;
+  sourceRef?: string;
+  sourceUrl?: string;
+  sourceId?: string;
+  evidenceType?: "behavioral" | "stated" | "measured" | "synthetic";
+  observedAt?: string;
+  strength?: 1 | 2 | 3 | 4 | 5;
+  weight?: number;
+  firstParty?: boolean;
+  reliability?: number;
+  persona?: string[];
+  funnelStage?: string;
+  impactType?: string;
+}
+
 export interface ResearchTask { id: string; workspaceId: string; hypothesisIds: string[]; question: string; objective: "support"|"disconfirm"|"discriminate"|"refresh"|"discover"; preferredSources: string[]; requiredSourceDiversity: number; maxCostClass: "local"|"free"|"free_quota"|"paid_optional"; status: "queued"|"claimed"|"running"|"blocked"|"complete"|"failed"|"cancelled"; priority: number; notBefore?: string; attempts: number; maxAttempts: number; createdBy: string; runId?: string; claimedBy?: string; claimExpiresAt?: string; revision?: number }
 export interface ResearchResult { id: string; taskId: string; providerId: string; title: string; excerpt: string; url?: string; publishedAt?: string; retrievedAt: string; relation?: EvidenceRelation; hypothesisId?: string; metadata?: Record<string, unknown> }
 export interface DomainEvent { id: string; type: string; workspaceId: string; entityId?: string; at: string; actor: ActorContext; runId?: string; before?: unknown; after?: unknown; causedBy?: string[] }

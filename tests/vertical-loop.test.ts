@@ -16,6 +16,53 @@ class MockProvider implements ResearchProvider {
 }
 const nodeForHypothesis = (h: ReturnType<typeof hypothesis>) => ({ id: h.id, workspaceId: "fixture", kind: "hypothesis" as const, title: h.title, body: h.statement, metadata: {}, provenance: { origin: "human" as const, actorId: "test", createdAt: h.createdAt }, createdAt: h.createdAt, updatedAt: h.updatedAt, version: 1 })
 
+import { NodepadService } from "../lib/services/nodepad"
+
+test("external evidence canonical linkage", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "nodepad-canonical-")), store = new FileNodepadStore(directory)
+  const workspace = fixture(), h1 = hypothesis([], []); h1.strategicImportance = 100
+  workspace.hypotheses = [h1]; workspace.nodes = [nodeForHypothesis(h1)]
+  await store.saveWorkspace(workspace)
+  const service = new NodepadService(store), actor = { actorType: "system" as const, actorId: "test-client" }
+
+  // Missing hypothesis
+  await assert.rejects(service.addEvidence(workspace.id, { claim: "Bad", hypothesisId: "does_not_exist" }, actor), /hypothesis_not_found/)
+
+  // Qualification injection attempt
+  await assert.rejects(service.addEvidence(workspace.id, { claim: "Inject", hypothesisId: h1.id, qualification: "strongly_qualified" } as any, actor), /authoritative scoring fields/)
+
+  // Supporting evidence
+  const e1 = await service.addEvidence(workspace.id, { claim: "Supporting claim", hypothesisId: h1.id, relation: "supports" }, actor, "key1")
+  const w1 = await store.getWorkspace(workspace.id), h1Updated = w1.hypotheses[0]
+  assert.equal(w1.evidence.length, 1); assert.equal(h1Updated.supportingEvidence[0], e1.id)
+  assert.equal(h1Updated.contradictingEvidence.length, 0)
+  assert.ok(w1.edges.some(edge => edge.type === "supports" && edge.sourceId === e1.id && edge.targetId === h1.id))
+  assert.ok(h1Updated.evidenceScore > 0)
+
+  // Contradicting evidence
+  const e2 = await service.addEvidence(workspace.id, { claim: "Contradicting claim", hypothesisId: h1.id, relation: "contradicts" }, actor, "key2")
+  const w2 = await store.getWorkspace(workspace.id), h1Updated2 = w2.hypotheses[0]
+  assert.equal(w2.evidence.length, 2); assert.equal(h1Updated2.contradictingEvidence[0], e2.id)
+  assert.ok(w2.edges.some(edge => edge.type === "contradicts" && edge.sourceId === e2.id && edge.targetId === h1.id))
+  assert.ok(h1Updated2.evidenceScore < h1Updated.evidenceScore)
+
+  // Neutral evidence
+  const e3 = await service.addEvidence(workspace.id, { claim: "Neutral claim", hypothesisId: h1.id, relation: "neutral" }, actor, "key3")
+  const w3 = await store.getWorkspace(workspace.id), h1Updated3 = w3.hypotheses[0]
+  assert.equal(w3.evidence.length, 3); assert.equal(h1Updated3.supportingEvidence.length, 1); assert.equal(h1Updated3.contradictingEvidence.length, 1)
+
+  // Idempotency
+  const e1Repeat = await service.addEvidence(workspace.id, { claim: "Supporting claim", hypothesisId: h1.id, relation: "supports" }, actor, "key1")
+  assert.equal(e1Repeat.id, e1.id)
+  const w4 = await store.getWorkspace(workspace.id)
+  assert.equal(w4.evidence.length, 3); assert.equal(w4.edges.filter(e => e.type === "supports").length, 1)
+
+  // Conflicting Idempotency
+  await assert.rejects(service.addEvidence(workspace.id, { claim: "Different claim", hypothesisId: h1.id, relation: "supports" }, actor, "key1"), /idempotency_conflict/)
+
+  await rm(directory, { recursive: true, force: true })
+})
+
 test("automatic heartbeat closes synthesis, hypothesis, research, evidence, score and brain loop", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "nodepad-vertical-")), store = new FileNodepadStore(directory)
   const workspace = fixture(), target = { ...hypothesis(), strategicImportance: 100, uncertainty: 100 }

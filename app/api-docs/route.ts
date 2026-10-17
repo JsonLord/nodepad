@@ -66,7 +66,7 @@ export async function GET() {
         path: "/api/v1/workspaces/{id}/evidence",
         method: "GET / POST",
         purpose: "Fetch or add evidence to workspace.",
-        request: "POST JSON: { claim, polarity, source, observedAt }",
+        request: "POST JSON: { claim: 'Users repeatedly abandon onboarding at document upload', hypothesisId: 'hyp_...', relation: 'supports', sourceType: 'human_interview', sourceRef: 'github:.../interview-03.md', observedAt: '2026-10-17T12:00:00Z', evidenceType: 'stated', firstParty: true, strength: 4, weight: 1 }",
         response: "Evidence object"
       },
       {
