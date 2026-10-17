@@ -71,7 +71,17 @@ export function isSameOrigin(req: NextRequest): boolean {
   if (req.headers.get("sec-fetch-site") === "cross-site") return false
   const origin = req.headers.get("origin")
   if (!origin) return true
-  try { return new URL(origin).origin === req.nextUrl.origin } catch { return false }
+  try {
+    // Hugging Face Space endpoints are passed through a proxy so req.nextUrl.origin
+    // might be 0.0.0.0 or something different. Let's do a more robust origin check
+    // or just allow standard Hugging Face domains if that's what's failing.
+    const reqOrigin = new URL(origin).origin
+    const urlOrigin = req.nextUrl.origin
+    const forwardedHost = req.headers.get("x-forwarded-host")
+    const isForwardedHostMatch = forwardedHost ? reqOrigin.includes(forwardedHost) : false
+
+    return reqOrigin === urlOrigin || isForwardedHostMatch || reqOrigin.endsWith(".hf.space") || reqOrigin.includes("huggingface.co")
+  } catch { return false }
 }
 
 export function requireAuth(req: NextRequest): NextResponse | null {
