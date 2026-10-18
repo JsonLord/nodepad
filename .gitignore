@@ -22,3 +22,8 @@ CLAUDE.md
 
 # Durable local embedding cache (never part of workspace backups)
 **/.embeddings/
+*.log
+cookies.txt
+fix_test.*
+test_*.py
+test_*.js

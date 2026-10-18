@@ -6,7 +6,7 @@ export class EmbeddingError extends Error {
 }
 export function embeddingConfig() {
   return { enabled: process.env.NODEPAD_EMBEDDING_ENABLED === "true", provider: process.env.NODEPAD_EMBEDDING_PROVIDER || "ollama",
-    url: process.env.NODEPAD_EMBEDDING_URL ?? "http://127.0.0.1:11434", model: process.env.NODEPAD_EMBEDDING_MODEL ?? "embeddinggemma2",
+    url: process.env.NODEPAD_EMBEDDING_URL ?? "http://127.0.0.1:11434", model: process.env.NODEPAD_EMBEDDING_MODEL ?? "Xenova/bge-small-en-v1.5",
     timeout: Math.min(30_000, Math.max(100, Number(process.env.NODEPAD_EMBEDDING_TIMEOUT_MS) || 5000)) }
 }
 export function threshold(name: string, fallback: number) {

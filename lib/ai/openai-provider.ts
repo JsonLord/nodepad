@@ -185,6 +185,9 @@ export async function getProviderStatus(fetchImpl: typeof fetch = fetch): Promis
   }
 }
 
+// Global state to track capability fallback per model if mode is auto
+const modeFallbackCache = new Map<string, "json_schema" | "json_object">()
+
 export async function completeChat(
   request: LLMRequest,
   fetchImpl: typeof fetch = fetch
@@ -203,10 +206,37 @@ export async function completeChat(
     headers["Authorization"] = `Bearer ${config.apiKey}`
   }
 
+  const requestedMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE || "auto"
+  let activeMode = requestedMode
+
+  if (activeMode === "auto") {
+    activeMode = modeFallbackCache.get(modelToUse) || "json_schema"
+  }
+
+  let finalMessages = [...request.messages]
+  let finalResponseFormat = request.responseFormat
+
+  if (activeMode === "json_object" && finalResponseFormat?.type === "json_schema") {
+    finalResponseFormat = { type: "json_object" }
+    const schemaStr = JSON.stringify(request.responseFormat?.json_schema?.schema || {})
+
+    // Prepend instruction to first system message or create one
+    const instruction = "Return exactly one JSON object. No markdown. No prose. No code fences. No fields outside the supplied schema. Schema: " + schemaStr
+
+    if (finalMessages.length > 0 && finalMessages[0].role === "system") {
+      finalMessages[0] = {
+        ...finalMessages[0],
+        content: instruction + "\n\n" + finalMessages[0].content
+      }
+    } else {
+      finalMessages.unshift({ role: "system", content: instruction })
+    }
+  }
+
   const payload = {
     model: modelToUse,
-    messages: request.messages,
-    ...(request.responseFormat ? { response_format: request.responseFormat } : {}),
+    messages: finalMessages,
+    ...(finalResponseFormat ? { response_format: finalResponseFormat } : {}),
     temperature: request.temperature ?? 0.2,
     ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
   }
@@ -223,6 +253,20 @@ export async function completeChat(
     }).finally(() => clearTimeout(timeoutId))
 
     const errBody = await res.text().catch(() => "")
+
+    // Fallback logic for auto mode
+    if (requestedMode === "auto" && activeMode === "json_schema" && (!res.ok || errBody.includes("```") || (res.ok && !errBody.includes("{")))) {
+      // If the API explicitly rejected json_schema, or if it gave an OK response but ignored it by returning prose
+      let shouldFallbackAndRetry = false
+      if (res.status === 400 && (errBody.includes("response_format") || errBody.includes("schema"))) {
+        shouldFallbackAndRetry = true
+      }
+
+      if (shouldFallbackAndRetry) {
+        modeFallbackCache.set(modelToUse, "json_object")
+        return completeChat(request, fetchImpl) // Retry with json_object
+      }
+    }
 
     if (errBody.includes("You must provide a valid API key")) {
       throw new Error("LLM provider authentication failed: invalid API key.")
@@ -258,6 +302,17 @@ export async function completeChat(
     const content = data.choices?.[0]?.message?.content
     if (typeof content !== "string") throw new Error("LLM provider returned a malformed completion response.")
     const returnedModel = data.model || modelToUse
+
+    // In auto mode, if we are doing json_schema but the output contains markdown fences or isn't strict JSON,
+    // we should fallback for the future.
+    if (requestedMode === "auto" && activeMode === "json_schema") {
+      try {
+        JSON.parse(content)
+      } catch (e) {
+        modeFallbackCache.set(modelToUse, "json_object")
+        return completeChat(request, fetchImpl) // Retry with json_object
+      }
+    }
 
     return {
       content,
