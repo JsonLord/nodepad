@@ -186,12 +186,12 @@ export async function getProviderStatus(fetchImpl: typeof fetch = fetch): Promis
 }
 
 // Global state to track capability fallback per model if mode is auto
-const modeFallbackCache = new Map<string, "json_schema" | "json_object">()
+export const modeFallbackCache = new Map<string, "json_schema" | "json_object" | "prompt_json">()
 
 export async function completeChat(
   request: LLMRequest,
   fetchImpl: typeof fetch = fetch
-): Promise<LLMResponse> {
+): Promise<LLMResponse & { requestedMode?: string, effectiveMode?: string, compatibilityRetryUsed?: boolean }> {
   const config = getEnvLlmConfig()
 
   if (!config.configured) {
@@ -199,6 +199,7 @@ export async function completeChat(
   }
 
   const modelToUse = request.model || config.model
+  const cacheKey = `${config.baseUrl}#${modelToUse}`
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   }
@@ -206,18 +207,19 @@ export async function completeChat(
     headers["Authorization"] = `Bearer ${config.apiKey}`
   }
 
-  const requestedMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE || "auto"
+  const envMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE || "auto"
+  const requestedMode = (request as any)._fallbackRequestedMode || envMode
   let activeMode = requestedMode
 
   if (activeMode === "auto") {
-    activeMode = modeFallbackCache.get(modelToUse) || "json_schema"
+    activeMode = modeFallbackCache.get(cacheKey) || "json_schema"
   }
 
   let finalMessages = [...request.messages]
   let finalResponseFormat = request.responseFormat
 
-  if (activeMode === "json_object" && finalResponseFormat?.type === "json_schema") {
-    finalResponseFormat = { type: "json_object" }
+  if ((activeMode === "json_object" || activeMode === "prompt_json") && finalResponseFormat?.type === "json_schema") {
+    finalResponseFormat = activeMode === "prompt_json" ? undefined : { type: "json_object" }
     const schemaStr = JSON.stringify(request.responseFormat?.json_schema?.schema || {})
 
     // Prepend instruction to first system message or create one
@@ -258,13 +260,30 @@ export async function completeChat(
     if (requestedMode === "auto" && activeMode === "json_schema" && (!res.ok || errBody.includes("```") || (res.ok && !errBody.includes("{")))) {
       // If the API explicitly rejected json_schema, or if it gave an OK response but ignored it by returning prose
       let shouldFallbackAndRetry = false
-      if (res.status === 400 && (errBody.includes("response_format") || errBody.includes("schema"))) {
+      if (res.status === 400 || res.status === 422) {
+        shouldFallbackAndRetry = true
+      } else if (res.ok && (errBody.includes("```") || !errBody.includes("{"))) {
         shouldFallbackAndRetry = true
       }
 
       if (shouldFallbackAndRetry) {
-        modeFallbackCache.set(modelToUse, "json_object")
-        return completeChat(request, fetchImpl) // Retry with json_object
+        // Do NOT cache yet. Only execute one fallback attempt.
+        // We temporarily pass a hint to avoid infinite loop.
+        const fallbackRequest = { ...request, _fallbackAttempted: true, _fallbackRequestedMode: "json_object" } as LLMRequest & { _fallbackAttempted?: boolean, _fallbackRequestedMode?: string }
+        if (!request.hasOwnProperty("_fallbackAttempted")) {
+            // First try json_object. Fable5 returns 400 for json_object too.
+            // If json_object fails, we must use prompt_json.
+            try {
+                return await completeChat(fallbackRequest, fetchImpl)
+            } catch (err1: any) {
+                // If json_object also fails, try prompt_json
+                if (err1.message.includes("400") || err1.message.includes("422") || (err1.status && (err1.status === 400 || err1.status === 422))) {
+                    const fallbackRequest2 = { ...request, _fallbackAttempted: true, _fallbackRequestedMode: "prompt_json" } as LLMRequest & { _fallbackAttempted?: boolean, _fallbackRequestedMode?: string }
+                    return await completeChat(fallbackRequest2, fetchImpl)
+                }
+                throw err1
+            }
+        }
       }
     }
 
@@ -305,12 +324,22 @@ export async function completeChat(
 
     // In auto mode, if we are doing json_schema but the output contains markdown fences or isn't strict JSON,
     // we should fallback for the future.
-    if (requestedMode === "auto" && activeMode === "json_schema") {
+    if (envMode === "auto" && requestedMode === "auto" && activeMode === "json_schema") {
       try {
         JSON.parse(content)
       } catch (e) {
-        modeFallbackCache.set(modelToUse, "json_object")
-        return completeChat(request, fetchImpl) // Retry with json_object
+        const fallbackRequest = { ...request, _fallbackAttempted: true, _fallbackRequestedMode: "json_object" } as LLMRequest & { _fallbackAttempted?: boolean, _fallbackRequestedMode?: string }
+        if (!request.hasOwnProperty("_fallbackAttempted")) {
+            try {
+                return await completeChat(fallbackRequest, fetchImpl)
+            } catch (err1: any) {
+                if (err1.message.includes("400") || err1.message.includes("422") || (err1.status && (err1.status === 400 || err1.status === 422))) {
+                    const fallbackRequest2 = { ...request, _fallbackAttempted: true, _fallbackRequestedMode: "prompt_json" } as LLMRequest & { _fallbackAttempted?: boolean, _fallbackRequestedMode?: string }
+                    return await completeChat(fallbackRequest2, fetchImpl)
+                }
+                throw err1
+            }
+        }
       }
     }
 
@@ -318,6 +347,9 @@ export async function completeChat(
       content,
       model: returnedModel,
       provider: "openai-compatible",
+      requestedMode: envMode,
+      effectiveMode: activeMode,
+      compatibilityRetryUsed: (request as any)._fallbackAttempted ?? false
     }
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {

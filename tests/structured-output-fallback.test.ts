@@ -229,3 +229,46 @@ test("structuredChat throws on invalid JSON even after all fallbacks", async () 
     process.env.OPENAI_MODEL = prevModel;
     process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
 });
+
+test("structuredChat cascades to prompt_json if json_object fails with 400", async () => {
+    const prevUrl = process.env.OPENAI_URL;
+    const prevKey = process.env.OPENAI_API;
+    const prevModel = process.env.OPENAI_MODEL;
+    const prevMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE;
+
+    process.env.OPENAI_URL = "http://localhost:8080"
+    process.env.OPENAI_API = "dummy"
+    process.env.OPENAI_MODEL = "test-model-cascade"
+    process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = "auto"
+
+    const responses = [
+        { status: 400, body: "unsupported schema" }, // json_schema fails
+        { status: 400, body: "unsupported json_object" }, // json_object fails
+        { status: 200, body: JSON.stringify({ choices: [{ message: { content: '{"relation":"supports"}' } }] }) } // prompt_json succeeds
+    ]
+
+    let requestCount = 0;
+    const mockFetchImpl = async (url: string | URL | Request, options: any) => {
+        requestCount++;
+        const parsed = JSON.parse(options.body)
+        if (requestCount === 2) {
+            assert.equal(parsed.response_format?.type, "json_object")
+        } else if (requestCount === 3) {
+            assert.equal(parsed.response_format, undefined)
+        }
+        return mockFetch(url, options, responses) as any
+    }
+
+    const result = await completeChat({
+        messages: [{ role: "user", content: "test" }],
+        responseFormat: { type: "json_schema", json_schema: { name: "test", strict: true, schema: {} } }
+    }, mockFetchImpl as any)
+
+    assert.equal(result.content, '{"relation":"supports"}')
+    assert.equal(requestCount, 3)
+
+    process.env.OPENAI_URL = prevUrl;
+    process.env.OPENAI_API = prevKey;
+    process.env.OPENAI_MODEL = prevModel;
+    process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
+});
