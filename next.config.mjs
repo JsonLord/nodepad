@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  serverExternalPackages: ["@xenova/transformers"],
   typescript: {
     // Build errors are intentionally ignored — see CLAUDE.md
     ignoreBuildErrors: true,
