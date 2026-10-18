@@ -9,6 +9,12 @@ let loadPromise: Promise<any> | null = null;
 let loadError: Error | null = null;
 let loadedModelId: string | null = null;
 
+// Allow dependency injection for testing
+let _mockPipeline: any = null;
+export function setMockPipeline(mock: any) {
+    _mockPipeline = mock;
+}
+
 async function getExtractor(modelId: string) {
     const effectiveModelId = modelId || "Xenova/bge-small-en-v1.5";
 
@@ -23,18 +29,28 @@ async function getExtractor(modelId: string) {
 
     if (!loadPromise) {
         loadedModelId = effectiveModelId;
-        loadPromise = pipeline("feature-extraction", effectiveModelId, {
+        const pipelineFn = _mockPipeline || pipeline;
+        loadPromise = pipelineFn("feature-extraction", effectiveModelId, {
             quantized: true, // Use quantized for faster CPU inference
-        }).then(ext => {
+        }).then((ext: any) => {
             extractorInstance = ext;
             return ext;
-        }).catch(err => {
+        }).catch((err: any) => {
             loadError = err;
             throw err;
         });
     }
 
     return loadPromise;
+}
+
+// for tests to reset state
+export function resetLocalTransformersState() {
+    extractorInstance = null;
+    loadPromise = null;
+    loadError = null;
+    loadedModelId = null;
+    _mockPipeline = null;
 }
 
 export class LocalTransformersProvider implements EmbeddingProvider {
@@ -71,6 +87,10 @@ export class LocalTransformersProvider implements EmbeddingProvider {
     const config = embeddingConfig()
     const effectiveModelId = config.model || "Xenova/bge-small-en-v1.5";
     if (!config.enabled) return { enabled: false, provider: "local-transformers", model: effectiveModelId, status: "disabled" }
+
+    if (loadedModelId !== effectiveModelId) {
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "not_configured" } // not loaded yet, or changed
+    }
 
     try {
         if (loadError) return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
