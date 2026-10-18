@@ -10,10 +10,20 @@ def log_event(event_name, data):
     print("---")
 
 def run_tests():
+    api_key = os.environ.get("NODEPAD_API_KEY")
+    if not api_key:
+        print("Please set NODEPAD_API_KEY environment variable")
+        return
+
+    space_domain = os.environ.get("NODEPAD_SPACE_DOMAIN")
+    if not space_domain:
+        print("Please set NODEPAD_SPACE_DOMAIN environment variable (e.g. 'leon4gr45-nodepad-hypotheses.hf.space')")
+        return
+
     headers = {
-        'Authorization': 'Bearer test_api_key_for_testing'
+        'Authorization': f'Bearer {api_key}'
     }
-    base_url = 'https://leon4gr45-nodepad-hypotheses.hf.space'
+    base_url = f'https://{space_domain}'
 
     print("Running live evaluation...")
 
@@ -119,6 +129,7 @@ def run_tests():
     print('Testing Synthesis S121...')
     requests.post(f'{base_url}/api/v1/workspaces/{ws_id}/syntheses/run', headers=headers, json={'synthesisType': 'S121'})
 
+
     # Let's inspect the graph
     res = requests.get(f'{base_url}/api/v1/workspaces/{ws_id}/context', headers=headers)
     ctx = res.json()
@@ -128,8 +139,6 @@ def run_tests():
     brain = res.json()
     print("\nExtracting Graph Adjudications:")
 
-    # We don't have detailed event logs.
-    # Let's get the edges and check their providence.
     res = requests.get(f'{base_url}/api/v1/workspaces/{ws_id}/graph', headers=headers)
     graph = res.json()
     for edge in graph.get('edges', []):
