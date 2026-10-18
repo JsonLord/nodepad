@@ -7,8 +7,8 @@
 | Batch embedding | FAIL | |
 | Semantic similarity sanity | FAIL | |
 | Nodepad embedding status | FAIL | /api/v1/embeddings/status returns unreachable |
-| alias-fast basic completion | FAIL | Cannot test LLM because dummy API key causes auth_error |
-| alias-fast strict JSON schema | FAIL | |
+| alias-fast basic completion | PASS | LLM test returns NODEPAD_LLM_OK |
+| alias-fast strict JSON schema | FAIL | Returns \n\nNODEPAD_LLM_OK instead of valid JSON matching schema |
 | alias-large strict JSON schema | FAIL | |
 | Support adjudication | FAIL | |
 | Contradiction adjudication | FAIL | |
@@ -25,4 +25,5 @@
 NO-GO
 
 The deployment itself succeeded and the Node.js application is running successfully on Hugging Face Spaces!
-However, the application relies on an external Embedding model via Ollama and an external LLM via FreeLLMAPI/OpenAI. We do not have valid credentials or URLs for these services (Ollama is expected at localhost, which doesn't exist in the Space container).
+The LLM integration is working, but it seems to be ignoring the `response_format` JSON schema instruction.
+Ollama is not running in the container so embeddings fail.
