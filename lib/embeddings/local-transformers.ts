@@ -7,14 +7,22 @@ env.allowLocalModels = false;
 let extractorInstance: any = null;
 let loadPromise: Promise<any> | null = null;
 let loadError: Error | null = null;
+let loadedModelId: string | null = null;
 
 async function getExtractor(modelId: string) {
+    const effectiveModelId = modelId || "Xenova/bge-small-en-v1.5";
+
+    if (loadedModelId !== effectiveModelId) {
+        extractorInstance = null;
+        loadPromise = null;
+        loadError = null;
+    }
+
     if (extractorInstance) return extractorInstance;
     if (loadError) throw loadError;
 
     if (!loadPromise) {
-        // use default model id if empty string is passed (for tests running without env var)
-        const effectiveModelId = modelId || "Xenova/all-MiniLM-L6-v2";
+        loadedModelId = effectiveModelId;
         loadPromise = pipeline("feature-extraction", effectiveModelId, {
             quantized: true, // Use quantized for faster CPU inference
         }).then(ext => {
@@ -61,14 +69,16 @@ export class LocalTransformersProvider implements EmbeddingProvider {
 
   async health(): Promise<EmbeddingHealth> {
     const config = embeddingConfig()
-    const effectiveModelId = config.model || "Xenova/all-MiniLM-L6-v2";
+    const effectiveModelId = config.model || "Xenova/bge-small-en-v1.5";
     if (!config.enabled) return { enabled: false, provider: "local-transformers", model: effectiveModelId, status: "disabled" }
 
     try {
         if (loadError) return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
+        if (!extractorInstance && loadPromise) {
+            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "degraded" } // loading
+        }
         if (!extractorInstance && !loadPromise) {
-            // Not loaded yet, but reachable
-            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "available" }
+            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "not_configured" } // not loaded yet
         }
         return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "available" }
     } catch (e) {

@@ -1,3 +1,0 @@
-Running tests...
-LLM Test: {'content': '\n\nNODEPAD_LLM_OK', 'model': 'alias-large', 'provider': 'openai-compatible'}
-LLM Chat Completion: {'model': 'alias-large', 'choices': [{'message': {'role': 'assistant', 'content': '\n\nNODEPAD_LLM_OK'}}]}

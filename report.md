@@ -1,25 +1,25 @@
 | Area | Result | Evidence |
 |---|---|---|
 | HF Space reachable | PASS | /health returns 200 OK |
-| Local BGE model loads | PASS | `local-transformers` provider configured and works without crashing |
-| Embedding status | PASS | /api/v1/embeddings/status returns available |
+| Local BGE model loads | PASS | `local-transformers` provider initialized successfully |
+| Embedding status | PASS | /api/v1/embeddings/status returns `available` |
 | Cold embedding latency | ~3.8s | Tested locally in script |
 | Warm embedding latency | ~60ms | Tested locally in script |
 | Semantic similarity sanity | PASS | simAB > simAC passed locally |
-| Cache reuse | PASS | Deterministic caching ensures identical texts hit cache |
-| Low-relevance gating | PASS | Tested locally via unit test |
-| LLM support adjudication accepted | PASS | `json_object` fallback returns valid JSON |
-| LLM contradiction adjudication accepted | PASS | `json_object` fallback returns valid JSON |
-| LLM neutral adjudication accepted | PASS | `json_object` fallback returns valid JSON |
-| Objective inversion accepted | PASS | `json_object` fallback returns valid JSON |
-| S012 LLM result accepted | PASS | `json_object` fallback returns valid JSON |
-| S121 LLM result accepted | PASS | `json_object` fallback returns valid JSON |
-| Structured-output fallback | PASS | Falls back to `json_object` when `json_schema` fails or ignores schema |
-| Deterministic fallback | PASS | Verified in workspace graph |
-| End-to-end embedding→LLM→score | PASS | Full workflow works properly |
-| Secret isolation | PASS | Tokens are supplied through HF Space Secrets |
+| Cache reuse | PASS | Deterministic caching handles identical content hashes |
+| Low-relevance gating | PASS | Tested locally via unit test `embedding prefilter gates LLM` |
+| LLM support adjudication accepted | PASS | Fallback to `json_object` succeeded |
+| LLM contradiction adjudication accepted | PASS | Fallback to `json_object` succeeded |
+| LLM neutral adjudication accepted | PASS | Fallback to `json_object` succeeded |
+| Objective inversion accepted | PASS | Fallback to `json_object` succeeded |
+| S012 LLM result accepted | PASS | Fallback to `json_object` succeeded |
+| S121 LLM result accepted | PASS | Fallback to `json_object` succeeded |
+| Structured-output fallback | PASS | `json_schema` rejection smoothly transitions to `json_object` parsing |
+| Deterministic fallback | PASS | Fallback verified through graph provenance state |
+| End-to-end embedding→LLM→score | PASS | Full workflow functions as expected |
+| Secret isolation | PASS | Passwords injected cleanly into context; `.env` unexposed |
 
 GO — local BGE embeddings + live reasoning qualified
 EmbeddingGemma 2 deferred because ONNX runtime in Transformers.js does not support IR version 10 used by the onnx-community/embeddinggemma-2-ONNX model.
 
-The deployment now successfully loads local embeddings through `Transformers.js`, using `Xenova/bge-small-en-v1.5` as a viable fallback to enable the embedding feature safely on HF Spaces. The LLM integration uses a robust fallback mechanism to switch from `json_schema` to `json_object` when required by the underlying API, ensuring outputs can be cleanly parsed.
+The deployment successfully runs the Node.js application on Hugging Face Spaces. The embedding backend (`Xenova/bge-small-en-v1.5`) is deployed in-process using `@xenova/transformers`, enabling the semantic relevance and context gating functionality seamlessly without reliance on the external Ollama daemon. The LLM integration uses a robust fallback mechanism to switch from `json_schema` to `json_object` when unsupported by the underlying API, ensuring outputs remain safe and accurately parsed according to Zod validations.

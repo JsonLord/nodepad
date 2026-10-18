@@ -1,0 +1,21 @@
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "workspaceId": "test_workspace_live_1729215082",
+    "generatedAt": "2026-10-18T02:32:11.268Z",
+    "counts": {
+      "knowledge": 0,
+      "hypotheses": 0,
+      "archive": 0
+    }
+  },
+  "summary": "# test_workspace_live_1729215082 brain\n\nGenerated 2026-10-18T02:32:11.268Z. 0 qualified knowledge item(s), 0 active hypothesis item(s), and 0 archived negative/historical item(s).\n\n## Newly promoted\n- None\n\n## Newly demoted\n- None\n\n## Qualification changes\n- None\n\n## Contested hypotheses\n- None\n\n## Strongest new evidence\n- None\n\n## Stale beliefs needing refresh\n- None\n\n## Highest-priority unresolved\n- None\n\n## Second-order insights\n- None\n\n## Opportunities / venture candidates\n- None\n\n## World-model updates\n- None\n\n## Research queue\n- queued: 0\n- claimed/running: 0\n- complete: 0\n",
+  "graph": {
+    "nodes": [],
+    "edges": []
+  },
+  "knowledge": [],
+  "hypotheses": [],
+  "archive": [],
+  "changelog": []
+}
