@@ -27,3 +27,10 @@ cookies.txt
 fix_test.*
 test_*.py
 test_*.js
+
+# Qualification artifacts
+qualification-results.json
+qualification-report.md
+__pycache__/
+*.pyc
+.pytest_cache/

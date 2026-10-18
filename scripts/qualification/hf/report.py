@@ -9,27 +9,68 @@ def generate_reports(test_results):
     [{'name': 'test_name', 'status': 'passed|failed|skipped', 'duration': 0.123, 'error': ''}]
     """
 
-    passed = sum(1 for r in test_results if r['status'] == 'passed')
-    failed = sum(1 for r in test_results if r['status'] == 'failed')
-    skipped = sum(1 for r in test_results if r['status'] == 'skipped')
+    # Map pytest statuses to requested taxonomy
+    for r in test_results:
+        if r['status'] == 'passed':
+            r['status_category'] = 'PASS'
+        elif r['status'] == 'failed':
+            r['status_category'] = 'FAIL'
+        elif r['status'] == 'skipped':
+            r['status_category'] = 'SKIP'
+        else:
+            r['status_category'] = 'NOT_TESTED'
+
+    passed = sum(1 for r in test_results if r['status_category'] == 'PASS')
+    failed = sum(1 for r in test_results if r['status_category'] == 'FAIL')
+    skipped = sum(1 for r in test_results if r['status_category'] == 'SKIP')
+
+    # Mandatory GO logic
+    mandatory_tests = [
+        "test_health_endpoint",
+        "test_auth_protection",
+        "test_embeddings_status",
+        "test_support_adjudication",
+        "test_contradiction_adjudication",
+        "test_neutral_adjudication",
+        "test_objective_inversion",
+        "test_s012_synthesis",
+        "test_s121_synthesis",
+        "test_heartbeat_trigger",
+        "test_security_endpoints_blocked",
+        "test_fetch_url_ssrf_protection",
+        "test_validation_failures"
+    ]
+
+    # Check if all mandatory tests passed
+    mandatory_passed = True
+    for mt in mandatory_tests:
+        test_case = next((t for t in test_results if t['name'] == mt), None)
+        if not test_case or test_case['status_category'] != 'PASS':
+            mandatory_passed = False
+            break
 
     # Determine overall status
     if failed > 0:
         overall_status = "NO-GO"
-    elif passed > 0:
+    elif mandatory_passed:
         overall_status = "GO"
     else:
         overall_status = "DEGRADED"
 
+    # Get deployment revision if available
+    revision = os.environ.get("NODEPAD_EXPECTED_REVISION", "NOT_TESTED")
+
     json_report = {
         "space": os.environ.get("NODEPAD_SPACE_DOMAIN", "unknown"),
+        "revision": revision,
         "startedAt": datetime.utcnow().isoformat() + "Z",
         "overall_status": overall_status,
         "summary": {
             "passed": passed,
             "failed": failed,
             "skipped": skipped,
-            "degraded": 0
+            "degraded": 1 if overall_status == "DEGRADED" else 0,
+            "not_tested": 0
         },
         "tests": test_results
     }

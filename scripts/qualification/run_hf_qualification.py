@@ -34,6 +34,23 @@ def main():
 
     plugin = QualificationPlugin()
 
+    # Attempt to fetch revision if available
+    import requests
+    domain = os.environ.get("NODEPAD_SPACE_DOMAIN").rstrip('/')
+    if not domain.startswith('http'):
+        domain = f"https://{domain}"
+
+    try:
+        r = requests.get(f"{domain}/health", timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if "revision" in data:
+                os.environ["NODEPAD_EXPECTED_REVISION"] = data["revision"]
+            elif "version" in data:
+                os.environ["NODEPAD_EXPECTED_REVISION"] = data["version"]
+    except Exception:
+        pass
+
     # Run pytest programmatically on the hf/ directory
     test_dir = os.path.join(os.path.dirname(__file__), "hf")
 

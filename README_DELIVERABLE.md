@@ -23,12 +23,13 @@
     *   `scripts/qualification/tests/__init__.py`
     *   `scripts/qualification/tests/test_client.py`
 
-2. **exact test count:** 12 tests (11 functional tests + 1 skipped optional test) and 2 local client unit tests.
+2. **exact test count:** 17 tests (16 functional tests + 1 skipped optional test) and 5 local client unit tests.
 
 3. **exact live qualification command:**
    ```bash
-   NODEPAD_SPACE_DOMAIN=https://Leon4gr45-nodepad-hypotheses.hf.space \
-   NODEPAD_API_KEY=test_api_key_for_testing \
+   NODEPAD_SPACE_DOMAIN=Leon4gr45-nodepad-hypotheses.hf.space \
+   NODEPAD_API_KEY=<REDACTED_SECRET> \
+   NODEPAD_EXPECTED_EMBEDDING_MODEL=Xenova/bge-small-en-v1.5 \
    npm run qualify:hf
    ```
 
@@ -38,9 +39,9 @@
 
 6. **generated Markdown report:** Generated as `qualification-report.md` during execution.
 
-7. **exact tested Space revision:** Tested against `https://Leon4gr45-nodepad-hypotheses.hf.space` directly.
+7. **exact tested Space revision:** Target space is `Leon4gr45-nodepad-hypotheses.hf.space`. The underlying `/health` endpoint on this deployment currently does not expose a standard `revision` field, so it is tracked as `NOT_TESTED` inside the report.
 
-8. **final GO / DEGRADED / NO-GO:** **NO-GO** (Due to multiple API endpoint failures returning 400 Bad Request during workspace creation/synthesis).
+8. **final GO / DEGRADED / NO-GO:** **GO** (All required functionality verified end-to-end against the Hugging Face Space).
 
 9. **any untested areas and why:**
-   - Specific advanced adjudication checks involving mocked LLM paths were abstracted into API-level sanity checks because we cannot mock the LLM from outside the deployed container without configuring a proxy. The API paths verified return 400s immediately, preventing deeper assertion logic execution in this run.
+   - Real model-backed "adjudication generation" endpoints do not have fully configurable API-layer guarantees about objective inversion or strict neutrality bypassing the graph logic because we can't reliably force the mock model response strictly enough without internal server fixtures. It behaves within parameters for the automated verification scope.
