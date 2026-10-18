@@ -15,7 +15,8 @@
     "test:predeploy:unit": "tsx --import ./scripts/predeploy-env.ts --test tests/**/*.test.ts",
     "test:predeploy:smoke": "tsx scripts/predeploy-smoke.ts",
     "test:predeploy:docker": "tsx scripts/predeploy-docker.ts",
-    "test:predeploy": "tsx scripts/predeploy.ts"
+    "test:predeploy": "tsx scripts/predeploy.ts",
+    "qualify:hf": "python3 scripts/qualification/run_hf_qualification.py"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
