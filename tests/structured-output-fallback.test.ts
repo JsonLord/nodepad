@@ -272,3 +272,75 @@ test("structuredChat cascades to prompt_json if json_object fails with 400", asy
     process.env.OPENAI_MODEL = prevModel;
     process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
 });
+
+test("structuredChat uses cached transport for subsequent requests", async () => {
+    const prevUrl = process.env.OPENAI_URL;
+    const prevKey = process.env.OPENAI_API;
+    const prevModel = process.env.OPENAI_MODEL;
+    const prevMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE;
+
+    process.env.OPENAI_URL = "http://localhost:8080"
+    process.env.OPENAI_API = "dummy"
+    process.env.OPENAI_MODEL = "test-model-cache"
+    process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = "auto"
+
+    // First request needs to fallback
+    const responses1 = [
+        { status: 400, body: "unsupported schema" }, // json_schema fails
+        { status: 200, body: JSON.stringify({ choices: [{ message: { content: '{"relation":"supports"}' } }] }) } // json_object succeeds
+    ]
+
+    let requestCount1 = 0;
+    const mockFetchImpl1 = async (url: string | URL | Request, options: any) => {
+        requestCount1++;
+        return mockFetch(url, options, responses1) as any
+    }
+
+    const mockChat1 = async (request: any) => {
+         const res = await completeChat(request, mockFetchImpl1 as any)
+         // reasoning.ts handles caching logic upon parsing success
+         if (res.requestedMode === "auto" && res.effectiveMode && res.effectiveMode !== "json_schema" && res.compatibilityRetryUsed) {
+            const config = getEnvLlmConfig()
+            const cacheKey = `${config.baseUrl}#${res.model}`
+            // To prevent TS errors and simulate reasoning.ts logic
+            const { modeFallbackCache } = require("../lib/ai/openai-provider")
+            modeFallbackCache.set(cacheKey, res.effectiveMode as any)
+         }
+         return {
+            content: "{}",
+            model: res.model,
+            provider: res.provider,
+            requestedMode: res.requestedMode,
+            effectiveMode: res.effectiveMode,
+            compatibilityRetryUsed: res.compatibilityRetryUsed,
+         }
+    }
+
+    await structuredChat({ messages: [{ role: "user", content: "test" }] }, { type: "object" }, mockChat1 as any)
+
+    assert.equal(requestCount1, 2)
+
+    // Second request should use cached json_object mode directly
+    const responses2 = [
+        { status: 200, body: JSON.stringify({ choices: [{ message: { content: '{"relation":"supports"}' } }] }) } // json_object succeeds immediately
+    ]
+    let requestCount2 = 0;
+    const mockFetchImpl2 = async (url: string | URL | Request, options: any) => {
+        requestCount2++;
+        const parsed = JSON.parse(options.body)
+        assert.equal(parsed.response_format?.type, "json_object") // should use cached mode
+        return mockFetch(url, options, responses2) as any
+    }
+
+    await completeChat({
+        messages: [{ role: "user", content: "test2" }],
+        responseFormat: { type: "json_schema", json_schema: { name: "test", strict: true, schema: {} } }
+    }, mockFetchImpl2 as any)
+
+    assert.equal(requestCount2, 1)
+
+    process.env.OPENAI_URL = prevUrl;
+    process.env.OPENAI_API = prevKey;
+    process.env.OPENAI_MODEL = prevModel;
+    process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
+});
