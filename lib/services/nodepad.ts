@@ -1,3 +1,8 @@
+import { createSemanticLayer, embeddingHealth } from "../embeddings"
+import { OpenAiEvidenceAdjudicator } from "../adjudication/openai"
+import { adjudicateEvidence, explicitAdjudication } from "../adjudication/pipeline"
+import type { EvidenceAdjudicator } from "../adjudication/provider"
+import type { SemanticLayer } from "../embeddings"
 import type { ActorContext, EvidenceRecord, HypothesisRecord, KnowledgeEdgeType, ResearchResult } from "../domain/types"
 import type { NodepadStore } from "../persistence/store"
 import { newId, stableId } from "../domain/id"
@@ -7,22 +12,50 @@ import { matchOrCreateHypothesis } from "../hypotheses/matching"
 import { exportBrain } from "../brain/export"
 
 export class NodepadService {
-  constructor(public store: NodepadStore) {}
+  constructor(public store: NodepadStore, private reasoning: { adjudicator?: EvidenceAdjudicator; semanticLayer?: SemanticLayer } = {}) {}
   async workspaces() { return this.store.listWorkspaces() }
   async graph(id: string) { const workspace = await this.store.getWorkspace(id); return { nodes: workspace.nodes, edges: workspace.edges } }
-  async context(id: string) { const workspace = await this.store.getWorkspace(id); const githubConfigured=Boolean(process.env.NODEPAD_GITHUB_TOKEN&&process.env.NODEPAD_GITHUB_REPOSITORY),enabled=process.env.NODEPAD_GITHUB_SYNC==="true",mode=githubConfigured?"github":process.env.NODEPAD_BACKUP_REPO?"local":"none";const status=!enabled?"backup_disabled":mode==="github"?(workspace.backup?.status??"github_connected"):mode==="local"?(workspace.backup?.status??"local_backup_only"):"github_not_configured";return { id: workspace.id, name: workspace.name, revision: workspace.revision, heartbeat: workspace.heartbeat, backup: {...workspace.backup,mode,status} } }
-  async addEvidence(id: string, input: Partial<EvidenceRecord> & { claim: string }, actor: ActorContext, key?: string) {
+  async context(id: string) { const workspace = await this.store.getWorkspace(id); const githubConfigured=Boolean(process.env.NODEPAD_GITHUB_TOKEN&&process.env.NODEPAD_GITHUB_REPOSITORY),enabled=process.env.NODEPAD_GITHUB_SYNC==="true",mode=githubConfigured?"github":process.env.NODEPAD_BACKUP_REPO?"local":"none";const status=!enabled?"backup_disabled":mode==="github"?(workspace.backup?.status??"github_connected"):mode==="local"?(workspace.backup?.status??"local_backup_only"):"github_not_configured";return { embeddings: await embeddingHealth(), id: workspace.id, name: workspace.name, revision: workspace.revision, heartbeat: workspace.heartbeat, backup: {...workspace.backup,mode,status} } }
+  async addEvidence(id: string, input: import("../domain/types").AddEvidenceInput, actor: ActorContext, key?: string) {
     const workspace = await this.store.getWorkspace(id), at = new Date().toISOString()
+
+    // Explicitly reject injected authoritative state
+    if ("qualification" in input || "confidence" in input || "evidenceScore" in input) {
+      throw new Error("Cannot inject authoritative scoring fields");
+    }
+
+    const targetHypothesis = input.hypothesisId ? workspace.hypotheses.find(h => h.id === input.hypothesisId) : undefined;
+    if (input.hypothesisId && !targetHypothesis) {
+      throw new Error("hypothesis_not_found");
+    }
+
     const evidenceId = key ? stableId("ev", id, key) : newId("ev"), found = workspace.evidence.find(item => item.id === evidenceId)
-    if (found) return found
-    const evidence: EvidenceRecord = { ...input, id: evidenceId, workspaceId: id, claim: input.claim,
-      sourceType: input.sourceType ?? "user_note", strength: input.strength ?? 3, weight: input.weight ?? 1,
-      stale: false, corroboratedBy: input.corroboratedBy ?? [], contradicts: input.contradicts ?? [], ingestedAt: at,
-      provenance: { origin: actor.actorType === "human" ? "human" : actor.actorType, actorId: actor.actorId, createdAt: at } }
+    if (found) {
+      if (found.claim !== input.claim) {
+        throw new Error("idempotency_conflict: claim differs");
+      }
+      return found;
+    }
+
+    const evidence: EvidenceRecord = {
+      id: evidenceId, workspaceId: id, claim: input.claim,
+      sourceType: input.sourceType ?? "user_note", sourceRef: input.sourceRef, sourceUrl: input.sourceUrl, sourceId: input.sourceId,
+      evidenceType: input.evidenceType ?? "stated",
+      strength: input.strength ?? 3, weight: input.weight ?? 1,
+      firstParty: input.firstParty ?? false, reliability: input.reliability,
+      persona: input.persona, funnelStage: input.funnelStage, impactType: input.impactType,
+      stale: false, corroboratedBy: [], contradicts: [],
+      observedAt: input.observedAt, ingestedAt: at,
+      provenance: { origin: actor.actorType === "human" ? "human" : actor.actorType, actorId: actor.actorId, runId: actor.correlationId, sourceRef: input.sourceRef, createdAt: at }
+    }
     workspace.evidence.push(evidence)
+
     workspace.nodes.push({ id: evidence.id, workspaceId: id, kind: "evidence", title: evidence.claim.slice(0, 100), body: evidence.claim,
       metadata: { sourceType: evidence.sourceType }, provenance: evidence.provenance, createdAt: at, updatedAt: at, version: 1 })
-    workspace.events.push({ id: stableId("evt", "evidence.added", evidenceId), type: "evidence.added", workspaceId: id, entityId: evidenceId, at, actor })
+
+    if (targetHypothesis && input.relation) explicitAdjudication(workspace, targetHypothesis, evidence, input.relation, actor)
+
+    workspace.events.push({ id: stableId("evt", "evidence.added", evidenceId), type: "evidence.added", workspaceId: id, entityId: evidenceId, at, actor, after: { relation: input.relation, hypothesisId: input.hypothesisId, sourceRef: input.sourceRef } })
     workspace.hypotheses = workspace.hypotheses.map(hypothesis => scoreHypothesis(hypothesis, workspace.evidence))
     await this.store.saveWorkspace(workspace); return evidence
   }
@@ -30,13 +63,17 @@ export class NodepadService {
     const workspace = await this.store.getWorkspace(id), at = new Date().toISOString(), hypothesisId = key ? stableId("hyp", id, key) : newId("hyp")
     const found = workspace.hypotheses.find(item => item.id === hypothesisId); if (found) return found
     let hypothesis: HypothesisRecord = { id: hypothesisId, workspaceId: id, title: input.title ?? input.statement.slice(0, 80), statement: input.statement,
-      hypothesisType: input.hypothesisType ?? "proposition", derivedFrom: input.derivedFrom ?? [], supportingEvidence: input.supportingEvidence ?? [],
-      contradictingEvidence: input.contradictingEvidence ?? [], dependentAssumptions: input.dependentAssumptions ?? [], alternativeHypotheses: input.alternativeHypotheses ?? [],
+      hypothesisType: input.hypothesisType ?? "proposition", derivedFrom: input.derivedFrom ?? [], supportingEvidence: [],
+      contradictingEvidence: [], dependentAssumptions: input.dependentAssumptions ?? [], alternativeHypotheses: input.alternativeHypotheses ?? [],
       impact: input.impact ?? 50, uncertainty: input.uncertainty ?? 100, novelty: input.novelty ?? 50, strategicImportance: input.strategicImportance ?? 50,
       evidenceScore: 0, confidence: 0, qualification: "unresolved", overlays: ["unresearched"], sourceDiversity: 0, firstPartyWeight: 0,
       behavioralWeight: 0, freshnessScore: 0, status: "active", researchGaps: input.researchGaps ?? ["Independent disconfirming evidence"],
       createdAt: at, updatedAt: at, generation: input.generation ?? { method: actor.actorType } }
+    const links = [...(input.supportingEvidence || []).map(id=>({id,relation:"supports" as const})),...(input.contradictingEvidence || []).map(id=>({id,relation:"contradicts" as const}))]
+    if (links.some(link=>!workspace.evidence.some(e=>e.id===link.id))) throw new Error("evidence_not_found")
+    if ((input.supportingEvidence || []).some(id=>(input.contradictingEvidence || []).includes(id))) throw new Error("conflicting_evidence_relations")
     hypothesis = scoreHypothesis(hypothesis, workspace.evidence); workspace.hypotheses.push(hypothesis)
+    for (const link of links) explicitAdjudication(workspace,hypothesis,workspace.evidence.find(e=>e.id===link.id)!,link.relation,actor)
     workspace.nodes.push({ id: hypothesis.id, workspaceId: id, kind: "hypothesis", title: hypothesis.title, body: hypothesis.statement,
       metadata: { hypothesisType: hypothesis.hypothesisType }, provenance: { origin: actor.actorType, actorId: actor.actorId, createdAt: at }, createdAt: at, updatedAt: at, version: 1 })
     workspace.events.push({ id: stableId("evt", "hypothesis.created", hypothesisId), type: "hypothesis.created", workspaceId: id, entityId: hypothesisId, at, actor })
@@ -44,8 +81,10 @@ export class NodepadService {
   }
   async synthesize(id: string, type: string, actor: ActorContext, runId = newId("run")) {
     const workspace = await this.store.getWorkspace(id), execution = await executeSynthesis(workspace, type, runId)
+    const layer = createSemanticLayer((this.store as {root?: string}).root)
+    const similarity = await layer.similarity([...workspace.hypotheses.map(h => h.statement), ...execution.proposals.map(p => p.statement)])
     for (const proposal of execution.proposals) {
-      const matched = matchOrCreateHypothesis(workspace, proposal, execution.result.id, runId)
+      const matched = matchOrCreateHypothesis(workspace, proposal, execution.result.id, runId, { similarity })
       execution.result.generatedHypotheses = [...new Set([...execution.result.generatedHypotheses, matched.hypothesis.id])]
     }
     workspace.events.push({ id: stableId("evt", "synthesis.generated", execution.result.id), type: "synthesis.generated", workspaceId: id, entityId: execution.result.id, at: new Date().toISOString(), actor, runId })
@@ -57,19 +96,28 @@ export class NodepadService {
     const resultId = key ? stableId("result", id, key) : stableId("result", taskId, input.providerId, input.url ?? input.title)
     const previous = workspace.researchResults.find(item => item.id === resultId); if (previous) return previous
     const result: ResearchResult = { ...input, id: resultId, taskId, retrievedAt: at }; workspace.researchResults.push(result)
-    const evidenceId = stableId("ev", taskId, input.providerId, input.url ?? input.title)
-    const evidence: EvidenceRecord = { id: evidenceId, workspaceId: id, claim: `${input.title}: ${input.excerpt}`, sourceType: input.providerId,
-      sourceRef: resultId, sourceUrl: input.url, strength: 3, weight: 1, stale: false, corroboratedBy: [], contradicts: [],
-      observedAt: input.publishedAt, ingestedAt: at, evidenceType: "stated", provenance: { origin: "research", actorId: input.providerId, sourceRef: taskId, createdAt: at } }
-    workspace.evidence.push(evidence)
-    const addNode = (nodeId: string, kind: "research_task" | "result" | "evidence", title: string, body: string) => { if (!workspace.nodes.some(node => node.id === nodeId)) workspace.nodes.push({ id: nodeId, workspaceId: id, kind, title, body, metadata: {}, provenance: { origin: "research", actorId: actor.actorId, createdAt: at }, createdAt: at, updatedAt: at, version: 1 }) }
-    addNode(task.id, "research_task", task.question, task.question); addNode(result.id, "result", result.title, result.excerpt); addNode(evidence.id, "evidence", evidence.claim.slice(0, 100), evidence.claim)
-    const addEdge = (sourceId: string, targetId: string, type: KnowledgeEdgeType) => { const edgeId = stableId("edge", sourceId, type, targetId); if (!workspace.edges.some(edge => edge.id === edgeId)) workspace.edges.push({ id: edgeId, workspaceId: id, sourceId, targetId, type, provenance: { origin: "research", actorId: actor.actorId, createdAt: at }, createdAt: at }) }
-    addEdge(task.id, result.id, "produced"); addEdge(result.id, evidence.id, "produced")
-    for (const hypothesisId of task.hypothesisIds) { const hypothesis = workspace.hypotheses.find(item => item.id === hypothesisId); if (!hypothesis) continue; const relation = result.relation ?? (task.objective === "support" ? "supports" : task.objective === "disconfirm" ? "contradicts" : "neutral"); if (relation === "supports") { hypothesis.supportingEvidence = [...new Set([...hypothesis.supportingEvidence, evidence.id])]; addEdge(evidence.id, hypothesis.id, "supports") } if (relation === "contradicts") { hypothesis.contradictingEvidence = [...new Set([...hypothesis.contradictingEvidence, evidence.id])]; addEdge(evidence.id, hypothesis.id, "contradicts") } }
-    workspace.hypotheses = workspace.hypotheses.map(hypothesis => scoreHypothesis(hypothesis, workspace.evidence)); task.status = "complete"
-    workspace.events.push({ id: stableId("evt", "research_task.completed", task.id, result.id), type: "research_task.completed", workspaceId: id, entityId: task.id, at, actor })
-    await this.store.saveWorkspace(workspace); return result
+
+    // Persist the research record/evidence before interpreting it. Task objective is not a relation.
+    await this.store.saveWorkspace(workspace)
+    const evidence = await this.addEvidence(id, { claim: `${input.title}: ${input.excerpt}`, sourceType: input.providerId, sourceRef: resultId, sourceUrl: input.url, evidenceType: "stated", observedAt: input.publishedAt }, { ...actor, actorType: "system" }, stableId("research-evidence", resultId))
+    const updatedWorkspace = await this.store.getWorkspace(id)
+    const updatedTask = updatedWorkspace.researchTasks.find(item => item.id === taskId)!
+    const storedResult = updatedWorkspace.researchResults.find(item => item.id === resultId)!
+    storedResult.metadata = { ...storedResult.metadata, evidenceId: evidence.id }
+    const layer = this.reasoning.semanticLayer ?? createSemanticLayer((this.store as {root?: string}).root)
+    const addNode = (nodeId: string, kind: "research_task" | "result", title: string, body: string) => { if (!updatedWorkspace.nodes.some(node => node.id === nodeId)) updatedWorkspace.nodes.push({ id: nodeId, workspaceId: id, kind, title, body, metadata: {}, provenance: { origin: "research", actorId: actor.actorId, createdAt: at }, createdAt: at, updatedAt: at, version: 1 }) }
+    addNode(updatedTask.id, "research_task", updatedTask.question, updatedTask.question); addNode(result.id, "result", result.title, result.excerpt)
+    const adjudicator = this.reasoning.adjudicator ?? new OpenAiEvidenceAdjudicator()
+    for (const hypothesisId of task.hypothesisIds) {
+      const h = updatedWorkspace.hypotheses.find(h => h.id === hypothesisId)
+      if (h) await adjudicateEvidence(updatedWorkspace, h, evidence, { result: storedResult, task: updatedTask, runId: actor.correlationId || resultId, layer, adjudicator })
+    }
+    const addEdge = (sourceId: string, targetId: string) => { const edgeId = stableId("edge", sourceId, "produced", targetId); if (!updatedWorkspace.edges.some(edge => edge.id === edgeId)) updatedWorkspace.edges.push({ id: edgeId, workspaceId: id, sourceId, targetId, type: "produced", provenance: { origin: "research", actorId: actor.actorId, createdAt: at }, createdAt: at }) }
+    addEdge(updatedTask.id, result.id); addEdge(result.id, evidence.id)
+
+    updatedTask.status = "complete"
+    updatedWorkspace.events.push({ id: stableId("evt", "research_task.completed", updatedTask.id, result.id), type: "research_task.completed", workspaceId: id, entityId: updatedTask.id, at, actor })
+    await this.store.saveWorkspace(updatedWorkspace); return storedResult
   }
   async queryGraph(id: string, query: { nodeId?: string; kind?: string; depth?: number; qualification?: string; important?: boolean; stale?: boolean; contested?: boolean } = {}) {
     const w = await this.store.getWorkspace(id), depth = Math.min(3, Math.max(0, query.depth ?? 1)), selected = new Set<string>()

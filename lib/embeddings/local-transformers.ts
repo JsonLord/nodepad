@@ -1,0 +1,108 @@
+import { pipeline, env } from "@xenova/transformers"
+import { EmbeddingProvider, EmbeddingHealth, embeddingConfig, EmbeddingError } from "./provider"
+
+// Transformers.js settings
+env.allowLocalModels = false;
+
+let extractorInstance: any = null;
+let loadPromise: Promise<any> | null = null;
+let loadError: Error | null = null;
+let loadedModelId: string | null = null;
+
+// Allow dependency injection for testing
+let _mockPipeline: any = null;
+export function setMockPipeline(mock: any) {
+    _mockPipeline = mock;
+}
+
+async function getExtractor(modelId: string) {
+    const effectiveModelId = modelId || "Xenova/bge-small-en-v1.5";
+
+    if (loadedModelId !== effectiveModelId) {
+        extractorInstance = null;
+        loadPromise = null;
+        loadError = null;
+    }
+
+    if (extractorInstance) return extractorInstance;
+    if (loadError) throw loadError;
+
+    if (!loadPromise) {
+        loadedModelId = effectiveModelId;
+        const pipelineFn = _mockPipeline || pipeline;
+        loadPromise = pipelineFn("feature-extraction", effectiveModelId, {
+            quantized: true, // Use quantized for faster CPU inference
+        }).then((ext: any) => {
+            extractorInstance = ext;
+            return ext;
+        }).catch((err: any) => {
+            loadError = err;
+            throw err;
+        });
+    }
+
+    return loadPromise;
+}
+
+// for tests to reset state
+export function resetLocalTransformersState() {
+    extractorInstance = null;
+    loadPromise = null;
+    loadError = null;
+    loadedModelId = null;
+    _mockPipeline = null;
+}
+
+export class LocalTransformersProvider implements EmbeddingProvider {
+  async embed(texts: string[]): Promise<number[][]> {
+    if (!texts.length) return []
+
+    try {
+        const config = embeddingConfig()
+        const extractor = await getExtractor(config.model);
+
+        // Batch size logic
+        const batchSize = Number(process.env.NODEPAD_EMBEDDING_BATCH_SIZE) || 8;
+        const results: number[][] = [];
+
+        for (let i = 0; i < texts.length; i += batchSize) {
+            const batch = texts.slice(i, i + batchSize);
+            // Limit text size
+            const safeBatch = batch.map(t => t.slice(0, 8000));
+
+            const output = await extractor(safeBatch, { pooling: 'mean', normalize: true });
+
+            // output is a tensor, we need to convert it to an array of arrays
+            const data = output.tolist();
+            results.push(...data);
+        }
+
+        return results;
+    } catch (e) {
+        throw new EmbeddingError("model_error");
+    }
+  }
+
+  async health(): Promise<EmbeddingHealth> {
+    const config = embeddingConfig()
+    const effectiveModelId = config.model || "Xenova/bge-small-en-v1.5";
+    if (!config.enabled) return { enabled: false, provider: "local-transformers", model: effectiveModelId, status: "disabled" }
+
+    if (loadedModelId !== effectiveModelId) {
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "not_configured" } // not loaded yet, or changed
+    }
+
+    try {
+        if (loadError) return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
+        if (!extractorInstance && loadPromise) {
+            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "degraded" } // loading
+        }
+        if (!extractorInstance && !loadPromise) {
+            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "not_configured" } // not loaded yet
+        }
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "available" }
+    } catch (e) {
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
+    }
+  }
+}

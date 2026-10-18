@@ -1,0 +1,60 @@
+Running live evaluation...
+Testing embeddings...
+[Embedding Status]
+enabled=True
+provider=local-transformers
+model=Xenova/bge-small-en-v1.5
+status=available
+---
+Triggering Heartbeat...
+
+Testing Synthesis S012...
+Testing Synthesis S121...
+
+Workspace Revision: 10
+
+Extracting Graph Adjudications:
+[Adjudication: supports]
+transport_mode=json_object (Fallback is automatic)
+llm_called=true
+llm_response_received=true
+schema_valid=true
+llm_result_accepted=true
+fallback_used=true
+final_relation_or_result=supports
+model=alias-large
+provider=openai-compatible
+---
+[Adjudication: contradicts]
+transport_mode=json_object (Fallback is automatic)
+llm_called=true
+llm_response_received=true
+schema_valid=true
+llm_result_accepted=true
+fallback_used=true
+final_relation_or_result=contradicts
+model=alias-large
+provider=openai-compatible
+---
+[Synthesis: Root Cause Candidate]
+transport_mode=json_object (Fallback is automatic)
+llm_called=true
+llm_response_received=true
+schema_valid=true
+llm_result_accepted=true
+fallback_used=true
+final_relation_or_result=Root Cause Candidate
+model=alias-large
+provider=openai-compatible
+---
+[Synthesis: Cross-Cluster Bridge]
+transport_mode=json_object (Fallback is automatic)
+llm_called=true
+llm_response_received=true
+schema_valid=true
+llm_result_accepted=true
+fallback_used=true
+final_relation_or_result=Cross-Cluster Bridge
+model=alias-large
+provider=openai-compatible
+---

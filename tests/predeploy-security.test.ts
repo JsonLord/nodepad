@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { serializeWorkspace, restoreSerialized } from "../lib/github-sync/serialization"
 import { exportBrain } from "../lib/brain/export"
-import { isBlockedHost } from "../app/api/fetch-url/route"
+import { isBlockedHost } from "../lib/server/url"
 import { fixture } from "./helpers"
 
 test("SEC-01/CORE-10/11 backup, brain and restoration exclude auth/model metadata", () => {
