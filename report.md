@@ -17,10 +17,38 @@
 | Escalation | FAIL | |
 | S012 LLM synthesis | FAIL | |
 | S12x LLM synthesis | FAIL | |
-| Deterministic synthesis fallback | FAIL | |
+| Deterministic synthesis fallback | PASS | |
 | End-to-end score transition | FAIL | |
 | Secret isolation | PASS | Passwords correctly read from environment variable |
 | Final deployed commit tested | PASS | |
+
+NO-GO
+
+The deployment itself succeeded and the Node.js application is running successfully on Hugging Face Spaces!
+The LLM integration is working, but it seems to be ignoring the `response_format` JSON schema instruction.
+Ollama is not running in the container so embeddings fail.
+
+---
+
+### Revised qualification report:
+
+| Area | Result |
+|---|---|
+| HF Space reachable | PASS |
+| Exact deployed revision known | PASS |
+| EmbeddingGemma path | FAIL |
+| Nodepad LLM completion through Space | PASS |
+| Structured adjudication through Space | FAIL |
+| Support case | FAIL |
+| Contradiction case | FAIL |
+| Neutral/irrelevant case | FAIL |
+| Objective inversion | FAIL |
+| S012 synthesis | FAIL |
+| S12x synthesis | FAIL |
+| Deterministic fallback | PASS |
+| End-to-end score transition | FAIL |
+| Secret isolation | PASS |
+| Direct FreeLLMAPI probe | FAIL |
 
 NO-GO
 
