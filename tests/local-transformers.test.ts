@@ -1,10 +1,10 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { LocalGemmaProvider } from "../lib/embeddings/local-gemma"
+import { LocalTransformersProvider } from "../lib/embeddings/local-transformers"
 import { cosine } from "../lib/embeddings/similarity"
 
-test("local-gemma provider test", async () => {
-    const p = new LocalGemmaProvider();
+test("local-transformers provider test", async () => {
+    const p = new LocalTransformersProvider();
     const t0 = Date.now();
     const res = await p.embed([
         "Customers abandon checkout because payment processing is too slow.",

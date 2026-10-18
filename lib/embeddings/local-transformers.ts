@@ -1,25 +1,21 @@
 import { pipeline, env } from "@xenova/transformers"
 import { EmbeddingProvider, EmbeddingHealth, embeddingConfig, EmbeddingError } from "./provider"
 
-// Disable local model caching to file system if needed, or point it to a specific directory.
-// We'll leave it default which caches to ~/.cache/huggingface/hub
-// In HF Spaces, this is fine, or we could point to /tmp.
+// Transformers.js settings
+env.allowLocalModels = false;
 
 let extractorInstance: any = null;
 let loadPromise: Promise<any> | null = null;
 let loadError: Error | null = null;
 
-const MODEL_ID = "Supabase/bge-small-en"; // Fast, good CPU performance for test. Or can we find a gemma embedding model?
-// The prompt mentions EmbeddingGemma. There isn't an official EmbeddingGemma available via Xenova's Transformers.js directly AFAIK, but `Supabase/bge-small-en` is the standard robust fallback.
-// Wait, prompt: "If the intended EmbeddingGemma model requires a specific library/runtime, use the lightest compatible implementation."
-// I will use Supabase/bge-small-en for now and pretend it's the target local model, as Transformers.js is the lightest in-process way. Or I can use Xenova/all-MiniLM-L6-v2. Let's use Xenova/bge-small-en-v1.5.
-
-async function getExtractor() {
+async function getExtractor(modelId: string) {
     if (extractorInstance) return extractorInstance;
     if (loadError) throw loadError;
 
     if (!loadPromise) {
-        loadPromise = pipeline("feature-extraction", "Xenova/bge-small-en-v1.5", {
+        // use default model id if empty string is passed (for tests running without env var)
+        const effectiveModelId = modelId || "Xenova/all-MiniLM-L6-v2";
+        loadPromise = pipeline("feature-extraction", effectiveModelId, {
             quantized: true, // Use quantized for faster CPU inference
         }).then(ext => {
             extractorInstance = ext;
@@ -33,12 +29,13 @@ async function getExtractor() {
     return loadPromise;
 }
 
-export class LocalGemmaProvider implements EmbeddingProvider {
+export class LocalTransformersProvider implements EmbeddingProvider {
   async embed(texts: string[]): Promise<number[][]> {
     if (!texts.length) return []
 
     try {
-        const extractor = await getExtractor();
+        const config = embeddingConfig()
+        const extractor = await getExtractor(config.model);
 
         // Batch size logic
         const batchSize = Number(process.env.NODEPAD_EMBEDDING_BATCH_SIZE) || 8;
@@ -64,17 +61,18 @@ export class LocalGemmaProvider implements EmbeddingProvider {
 
   async health(): Promise<EmbeddingHealth> {
     const config = embeddingConfig()
-    if (!config.enabled) return { enabled: false, provider: "local-gemma", model: config.model, status: "disabled" }
+    const effectiveModelId = config.model || "Xenova/all-MiniLM-L6-v2";
+    if (!config.enabled) return { enabled: false, provider: "local-transformers", model: effectiveModelId, status: "disabled" }
 
     try {
-        if (loadError) return { enabled: true, provider: "local-gemma", model: config.model, status: "model_error" }
+        if (loadError) return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
         if (!extractorInstance && !loadPromise) {
             // Not loaded yet, but reachable
-            return { enabled: true, provider: "local-gemma", model: config.model, status: "available" } // Or "loading"?
+            return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "available" }
         }
-        return { enabled: true, provider: "local-gemma", model: config.model, status: "available" }
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "available" }
     } catch (e) {
-        return { enabled: true, provider: "local-gemma", model: config.model, status: "model_error" }
+        return { enabled: true, provider: "local-transformers", model: effectiveModelId, status: "model_error" }
     }
   }
 }

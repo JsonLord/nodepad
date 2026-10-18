@@ -254,17 +254,25 @@ export async function completeChat(
 
     const errBody = await res.text().catch(() => "")
 
+    // Fallback logic for auto mode
+    if (requestedMode === "auto" && activeMode === "json_schema" && (!res.ok || errBody.includes("```") || (res.ok && !errBody.includes("{")))) {
+      // If the API explicitly rejected json_schema, or if it gave an OK response but ignored it by returning prose
+      let shouldFallbackAndRetry = false
+      if (res.status === 400 && (errBody.includes("response_format") || errBody.includes("schema"))) {
+        shouldFallbackAndRetry = true
+      }
+
+      if (shouldFallbackAndRetry) {
+        modeFallbackCache.set(modelToUse, "json_object")
+        return completeChat(request, fetchImpl) // Retry with json_object
+      }
+    }
+
     if (errBody.includes("You must provide a valid API key")) {
       throw new Error("LLM provider authentication failed: invalid API key.")
     }
 
     if (!res.ok) {
-      // Fallback logic for auto mode on HTTP 400
-      if (requestedMode === "auto" && activeMode === "json_schema" && res.status === 400 && (errBody.includes("response_format") || errBody.includes("schema"))) {
-        modeFallbackCache.set(modelToUse, "json_object")
-        return completeChat(request, fetchImpl) // Retry with json_object
-      }
-
       if (res.status === 401 || res.status === 403) {
         throw new Error(`LLM provider authentication failed (${res.status}).`)
       }

@@ -1,7 +1,7 @@
 import path from "node:path"
 import { embeddingConfig, type EmbeddingProvider, type EmbeddingHealth } from "./provider"
 import { OllamaEmbeddingProvider } from "./ollama"
-import { LocalGemmaProvider } from "./local-gemma"
+import { LocalTransformersProvider } from "./local-transformers"
 import { EmbeddingCache } from "./cache"
 import { cosine } from "./similarity"
 
@@ -36,8 +36,8 @@ export function createSemanticLayer(root = process.env.NODEPAD_DATA_DIR || path.
   if (config.enabled) {
     if (config.provider === "ollama") {
       provider = new OllamaEmbeddingProvider(config.url, config.model, fetchImpl, config.timeout)
-    } else if (config.provider === "local-gemma") {
-      provider = new LocalGemmaProvider()
+    } else if (config.provider === "local-transformers") {
+      provider = new LocalTransformersProvider()
     }
   }
 
@@ -53,8 +53,8 @@ export async function embeddingHealth(fetchImpl: typeof fetch = fetch): Promise<
   if (config.provider === "ollama") {
     if (!config.url || !config.model) return { ...base, status: "not_configured" }
     return new OllamaEmbeddingProvider(config.url, config.model, fetchImpl, config.timeout).health()
-  } else if (config.provider === "local-gemma") {
-    return new LocalGemmaProvider().health()
+  } else if (config.provider === "local-transformers") {
+    return new LocalTransformersProvider().health()
   }
 
   return { ...base, status: "not_configured" }
