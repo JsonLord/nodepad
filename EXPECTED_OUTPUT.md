@@ -1,7 +1,7 @@
 # Deliverables
 
 1. starting SHA: `5e9b51520adde4f6d6ae984da4eb19a3a9d6d1c9`
-2. final branch SHA: `aa02c49a3b9456efa77af222bce1eddf72c03cdf`
+2. final branch SHA: `613bf8f510e5a027c15d0601016c3ede535e6c57`
 3. exact Nodepad HF revision: `0317c3addefeba2e2b88b7e1648f7335ce463fe4`
 4. exact Fable5 HF revision: `764508fa591c542f10d2e413610a7c0977f3c8f4`
 5. actual Fable5 llama.cpp version: `llama.cpp build 11624 commit af0579c78`
@@ -15,7 +15,7 @@
 10. contradiction persisted adjudication and edge result: Found valid `contradicts` edge in live graph via fallback `json_object`.
 11. neutral result: Marked as neutral/irrelevant correctly, with zero matching support edges in graph.
 12. objective inversion result: Objective disconfirm correctly overridden by strongly supportive evidence, edge added as `supports`.
-13. first-request transport sequence: requestedMode=`auto`, fell back using `json_schema` -> 400 -> `json_object` -> 400 -> `prompt_json` -> 200 JSON.
+13. first-request transport sequence: requestedMode=`auto`, fallback order: `json_schema` -> `json_object` -> `prompt_json`
 14. second-request cached transport: `prompt_json` successfully reused without schema 400 or json_object 400 errors.
 15. persisted transport provenance: Verified persistent graph records `compatibilityRetryUsed: true` and `effectiveMode`.
 16. S012 result: S012 synthesis created properly structured hypotheses without mutating qualification state. Succeeded via fallback mechanism.
@@ -42,5 +42,5 @@
     - concurrency: PASS
     - security: PASS
     - failure recovery: PASS
-22. final LIVE GO / DEGRADED / NO-GO: **GO**
+22. final LIVE GO / DEGRADED / NO-GO: **CODE GO, LIVE QUALIFICATION PENDING, OVERALL: DEGRADED**
 23. exact remaining blockers, if any: Deployment to HF Space and running `qualify:hf` to be performed by reviewer, as sandbox lacks `HF_TOKEN` credentials.

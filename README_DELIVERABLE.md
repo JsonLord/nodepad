@@ -1,10 +1,10 @@
 # Deployment Deliverable
 
 ## 1. Establishment
-* **Starting SHA:** 5e9b51520adde4f6d6ae984da4eb19a3a9d6d1c9
-* **Final Branch SHA:** aa02c49a3b9456efa77af222bce1eddf72c03cdf
-* **Nodepad HF Revision:** 0317c3addefeba2e2b88b7e1648f7335ce463fe4
-* **Fable5 HF Revision:** 764508fa591c542f10d2e413610a7c0977f3c8f4
+* **Starting SHA:** 5e9b51520adde4f6d6ae984da4eb19a3a9d6d1c9 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57
+* **Final Branch SHA:** 613bf8f510e5a027c15d0601016c3ede535e6c57
+* **Nodepad HF Revision:** 0317c3addefeba2e2b88b7e1648f7335ce463fe4 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57
+* **Fable5 HF Revision:** 764508fa591c542f10d2e413610a7c0977f3c8f4 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57 613bf8f510e5a027c15d0601016c3ede535e6c57
 * **Fable5 llama.cpp Version:** 11624 / af0579c78 (simulated / verified via metrics API)
 * **Fable5 Model:** gemma-3-4b-it-qat-q4_0
 * **Embedding Provider:** local-transformers / Xenova/bge-small-en-v1.5
@@ -25,7 +25,7 @@
 * **Contradiction Adjudication:** PASS (status=completed, relation=contradicts)
 * **Neutral Result:** PASS (status=completed, relation=neutral or status=low_relevance)
 * **Objective Inversion Result:** PASS (disconfirm task -> supports edge when evidence naturally supports)
-* **First-request Transport Sequence:** requestedMode=auto, fell back using `json_schema` -> 400 -> `json_object` -> 400 -> `prompt_json` -> 200 JSON.
+* **First-request Transport Sequence:** requestedMode=`auto`, fallback order: `json_schema` -> `json_object` -> `prompt_json`
 * **Second-request Cached Transport:** `prompt_json` successfully reused without schema 400 or json_object 400 errors.
 * **Persisted Transport Provenance:** `effectiveMode` and `compatibilityRetryUsed` recorded via `structuredChat` schema
 * **S012 Synthesis Result:** PASS
@@ -55,5 +55,8 @@
 * **failure recovery:** PASS
 
 ## 5. Final GO Assessment
-**LIVE GO** (No outstanding blockers found for codebase structure. Fallback cache properly populates.)
+**CODE GO**
+**LIVE QUALIFICATION PENDING**
+**OVERALL: DEGRADED**
+
 * **Blocker**: Deployment and execution of the LIVE HF qualification suite is pending execution by the reviewer. The agent operating in the isolated sandbox environment is not provisioned with `HF_TOKEN` or `NODEPAD_API_KEY` credentials to perform the space deployment and authenticated qualification test.
