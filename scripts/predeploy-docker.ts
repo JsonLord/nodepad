@@ -21,15 +21,11 @@ async function command(args: string[], allowFailure = false) {
   return { code, output }
 }
 export async function dockerGate() {
-  return { result: "SKIPPED_ENV_DOCKER", passed: 0, failed: 0, skipped: 3 }
-
   try {
-    if ((await command(["info"], true)).code !== 0) { console.log("SKIPPED_ENV_DOCKER: managed local daemon unavailable"); return { result: "SKIPPED_ENV_DOCKER", passed: 0, failed: 0, skipped: 3 }
- }
+    if ((await command(["info"], true)).code !== 0) { console.log("SKIPPED_ENV_DOCKER: managed local daemon unavailable"); return { result: "SKIPPED_ENV_DOCKER", passed: 0, failed: 0, skipped: 3 } }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
     console.log("SKIPPED_ENV_DOCKER: docker executable absent"); return { result: "SKIPPED_ENV_DOCKER", passed: 0, failed: 0, skipped: 3 }
-
   }
   const args = ["build", "-t", "nodepad-predeploy"]
   // Optional CA bundle is only a BuildKit secret; never copied into the image.

@@ -390,3 +390,7 @@ export async function discoverModels(fetchImpl: typeof fetch = fetch) {
     return { ...result, discoveryStatus: "unreachable" }
   } finally { clearTimeout(timer) }
 }
+
+export function cacheSuccessfulMode(baseUrl: string, model: string, mode: string) {
+  modeFallbackCache.set(`${baseUrl}#${model}`, mode as "json_schema" | "json_object" | "prompt_json")
+}
