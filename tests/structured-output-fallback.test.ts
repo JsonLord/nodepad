@@ -401,3 +401,56 @@ test("structuredChat valid JSON but invalid Zod schema throws and does not cache
 
     process.env.OPENAI_URL = prevUrl; process.env.OPENAI_API = prevKey; process.env.OPENAI_MODEL = prevModel; process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
 });
+
+test("structuredChat caches correctly even when upstream returns different model id", async () => {
+    const prevUrl = process.env.OPENAI_URL; process.env.OPENAI_URL = "http://localhost:8080";
+    const prevKey = process.env.OPENAI_API; process.env.OPENAI_API = "dummy";
+    const prevModel = process.env.OPENAI_MODEL; process.env.OPENAI_MODEL = "test-model-request";
+    const prevMode = process.env.NODEPAD_STRUCTURED_OUTPUT_MODE; process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = "auto";
+
+    const { modeFallbackCache } = require("../lib/ai/openai-provider")
+    modeFallbackCache.delete("http://localhost:8080/v1#test-model-request")
+    modeFallbackCache.delete("http://localhost:8080/v1#test-model-upstream")
+
+    const responses1 = [
+        { status: 400, body: "unsupported schema" }, // json_schema fails
+        { status: 200, body: JSON.stringify({ model: "test-model-upstream", choices: [{ message: { content: '{"relation":"supports"}' } }] }) } // json_object succeeds
+    ]
+
+    let requestCount1 = 0;
+    const mockFetchImpl1 = async (url: string | URL | Request, options: any) => {
+        requestCount1++;
+        return mockFetch(url, options, responses1) as any
+    }
+
+    const mockChat1 = async (request: any) => {
+         return await completeChat(request, mockFetchImpl1 as any)
+    }
+
+    await structuredChat({ messages: [{ role: "user", content: "test" }] }, { type: "object" }, z.any(), mockChat1 as any)
+
+    assert.equal(requestCount1, 2)
+    assert.equal(modeFallbackCache.get("http://localhost:8080/v1#test-model-request"), "json_object")
+    assert.equal(modeFallbackCache.get("http://localhost:8080/v1#test-model-upstream"), undefined)
+
+    const responses2 = [
+        { status: 200, body: JSON.stringify({ model: "test-model-upstream", choices: [{ message: { content: '{"relation":"supports"}' } }] }) } // json_object succeeds directly
+    ]
+
+    let requestCount2 = 0;
+    const mockChat2 = async (request: any) => {
+        requestCount2++;
+        const res = await completeChat(request, async (url, options) => {
+            const parsed = JSON.parse((options as any).body)
+            assert.equal(parsed.response_format?.type, "json_object") // should use cached mode
+            return mockFetch(url, options, responses2) as any
+        })
+        return res
+    }
+
+    await structuredChat({ messages: [{ role: "user", content: "test2" }] }, { type: "object" }, z.any(), mockChat2 as any)
+
+    assert.equal(requestCount2, 1)
+
+    process.env.OPENAI_URL = prevUrl; process.env.OPENAI_API = prevKey; process.env.OPENAI_MODEL = prevModel; process.env.NODEPAD_STRUCTURED_OUTPUT_MODE = prevMode;
+});

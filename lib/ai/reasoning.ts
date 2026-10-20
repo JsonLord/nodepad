@@ -39,7 +39,7 @@ export async function structuredChat<T>(request: LLMRequest, schema: Record<stri
 
   if (response.requestedMode === "auto" && response.effectiveMode) {
       const config = getEnvLlmConfig()
-      cacheSuccessfulMode(config.baseUrl, response.model, response.effectiveMode)
+      cacheSuccessfulMode(config.baseUrl, request.model || config.model, response.effectiveMode)
   }
 
   return { response: { ...response, model: safeReasoningText(response.model) }, value: validated }
