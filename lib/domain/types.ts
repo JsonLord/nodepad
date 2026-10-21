@@ -16,7 +16,10 @@ export const KNOWLEDGE_EDGE_TYPES = [
 export type KnowledgeEdgeType = typeof KNOWLEDGE_EDGE_TYPES[number]
 export type Origin = "human" | "system" | "ai" | "agent" | "import" | "research"
 export interface ActorContext { actorType: "human" | "agent" | "system"; actorId: string; role?: string; sessionId?: string; agencyTaskId?: string; correlationId?: string }
-export interface ReasoningProvenance { provider: string; model: string; promptVersion: string; schemaVersion: string; runId: string; createdAt: string; sourceEvidenceIds: string[]; semanticContextIds: string[]; fallback: boolean; escalated: boolean }
+export interface ReasoningProvenance { provider: string; model: string; promptVersion: string; schemaVersion: string; runId: string; createdAt: string; sourceEvidenceIds: string[]; semanticContextIds: string[]; fallback: boolean
+  requestedMode?: string
+  effectiveMode?: string
+  compatibilityRetryUsed?: boolean; escalated: boolean }
 export interface Provenance { reasoning?: ReasoningProvenance; adjudicationId?: string; origin: Origin; actorId?: string; runId?: string; confidence?: number; explanation?: string; sourceRef?: string; createdAt: string }
 export interface KnowledgeNode { id: string; workspaceId: string; kind: KnowledgeNodeKind; title: string; body?: string; metadata: Record<string, unknown>; provenance: Provenance; createdAt: string; updatedAt: string; version: number }
 export interface KnowledgeEdge { id: string; workspaceId: string; sourceId: string; targetId: string; type: KnowledgeEdgeType; provenance: Provenance; createdAt: string }
